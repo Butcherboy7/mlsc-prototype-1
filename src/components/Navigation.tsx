@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { BookOpen, Brain, FileText, HelpCircle, Calendar, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import React from 'react';
+import { MessageCircle, FileText, Brain, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useVoice } from '@/hooks/useVoice';
@@ -15,11 +15,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCard
   const { isListening, isSpeaking, startListening, stopListening, stopSpeaking } = useVoice();
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BookOpen },
+    { id: 'chat', label: 'AI Chat', icon: MessageCircle },
     { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'flashcards', label: 'Flashcards', icon: Brain, badge: dueCardsCount > 0 ? dueCardsCount : undefined },
-    { id: 'doubts', label: 'Doubts', icon: HelpCircle },
-    { id: 'planner', label: 'Study Plans', icon: Calendar }
+    { id: 'flashcards', label: 'Flashcards', icon: Brain, badge: dueCardsCount > 0 ? dueCardsCount : undefined }
   ];
 
   return (
@@ -28,8 +26,8 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCard
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-mentora-500 to-mentora-700 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <MessageCircle className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold text-foreground">Mentora</span>
           </div>
