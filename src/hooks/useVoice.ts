@@ -66,45 +66,55 @@ export const useVoice = () => {
       return;
     }
 
-    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognitionClass();
-    
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
+    try {
+      const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognitionClass();
+      
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
 
-    recognition.onstart = () => {
-      setIsListening(true);
-    };
+      recognition.onstart = () => {
+        console.log('Voice recognition started');
+        setIsListening(true);
+      };
 
-    recognition.onresult = (event) => {
-      let finalTranscript = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+      recognition.onresult = (event) => {
+        console.log('Voice recognition result:', event);
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
         }
-      }
-      setTranscript(finalTranscript);
-    };
+        if (finalTranscript) {
+          setTranscript(finalTranscript);
+        }
+      };
 
-    recognition.onerror = (event) => {
-      console.error('Speech recognition error:', event.error);
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        console.log('Voice recognition ended');
+        setIsListening(false);
+      };
+
+      recognition.start();
+      recognitionRef.current = recognition;
+    } catch (error) {
+      console.error('Error starting voice recognition:', error);
       setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.start();
-    recognitionRef.current = recognition;
+    }
   }, []);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      setIsListening(false);
     }
+    setIsListening(false);
   }, []);
 
   const speak = useCallback((text: string, settings?: Partial<VoiceSettings>) => {

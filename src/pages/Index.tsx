@@ -1,6 +1,5 @@
 
-import React, { useState } from 'react';
-import { StudyMode } from '@/types';
+import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Notes from '@/components/Notes';
 import Flashcards from '@/components/Flashcards';
@@ -9,29 +8,31 @@ import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('chat');
-  const [selectedMode, setSelectedMode] = useState<StudyMode>('maths');
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   const { getDueCards } = useSpacedRepetition();
-  const dueCardsCount = getDueCards().filter(card => card.mode === selectedMode).length;
+  const dueCardsCount = getDueCards().length;
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  const handleToggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   const renderActiveComponent = () => {
     switch (activeTab) {
       case 'chat':
         return <AIChat />;
       case 'notes':
-        return (
-          <Notes
-            selectedMode={selectedMode}
-            onModeChange={setSelectedMode}
-          />
-        );
+        return <Notes />;
       case 'flashcards':
-        return (
-          <Flashcards
-            selectedMode={selectedMode}
-            onModeChange={setSelectedMode}
-          />
-        );
+        return <Flashcards />;
       default:
         return <AIChat />;
     }
@@ -43,6 +44,8 @@ const Index = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         dueCardsCount={dueCardsCount}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={handleToggleDarkMode}
       />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

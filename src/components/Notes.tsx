@@ -27,7 +27,7 @@ const Notes: React.FC = () => {
       title: newNote.title,
       content: newNote.content,
       summary: newNote.content.slice(0, 100) + '...',
-      mode: 'maths', // Default mode since we removed mode selection
+      mode: 'maths',
       tags: newNote.tags,
       createdAt: new Date(),
       updatedAt: new Date()

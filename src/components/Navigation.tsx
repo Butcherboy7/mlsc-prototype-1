@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { MessageCircle, FileText, Brain } from 'lucide-react';
+import { MessageCircle, FileText, Brain, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -7,9 +8,11 @@ interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   dueCardsCount: number;
+  isDarkMode: boolean;
+  onToggleDarkMode: () => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCardsCount }) => {
+const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCardsCount, isDarkMode, onToggleDarkMode }) => {
   const tabs = [
     { id: 'chat', label: 'AI Chat', icon: MessageCircle },
     { id: 'notes', label: 'Notes', icon: FileText },
@@ -51,8 +54,15 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCard
             })}
           </div>
 
-          {/* Mobile placeholder - keep layout consistent */}
-          <div className="w-8"></div>
+          {/* Dark Mode Toggle */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleDarkMode}
+            className="w-8 h-8 p-0"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
         </div>
 
         {/* Mobile Navigation */}

@@ -10,14 +10,8 @@ import { StudyMode, Flashcard } from '@/types';
 import { Brain, Plus, RotateCcw, Check, X, Volume2, Mic, Edit, Save, Filter } from 'lucide-react';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
 import { useVoice } from '@/hooks/useVoice';
-import StudyModeSelector from './StudyModeSelector';
 
-interface FlashcardsProps {
-  selectedMode: StudyMode;
-  onModeChange: (mode: StudyMode) => void;
-}
-
-const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) => {
+const Flashcards: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
   const [editingCard, setEditingCard] = useState<string | null>(null);
@@ -31,24 +25,24 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
   const { flashcards, getDueCards, addFlashcard, updateCardDifficulty, deleteFlashcard, updateFlashcard } = useSpacedRepetition();
   const { speak, isListening, startListening, stopListening, transcript, resetTranscript } = useVoice();
 
-  const modeCards = flashcards.filter(card => card.mode === selectedMode);
-  const dueCards = getDueCards().filter(card => card.mode === selectedMode);
+  const dueCards = getDueCards();
 
   React.useEffect(() => {
-    if (transcript && isCreating) {
-      const lines = transcript.split('\n');
-      if (lines.length === 1) {
-        setNewCard(prev => ({ ...prev, question: prev.question + ' ' + transcript }));
-      } else if (lines.length >= 2) {
+    if (transcript && transcript.trim()) {
+      if (isCreating) {
         setNewCard(prev => ({ 
           ...prev, 
-          question: prev.question + ' ' + lines[0],
-          answer: prev.answer + ' ' + lines.slice(1).join(' ')
+          question: prev.question ? prev.question + ' ' + transcript : transcript
+        }));
+      } else if (editingCard) {
+        setEditForm(prev => ({
+          ...prev,
+          question: prev.question ? prev.question + ' ' + transcript : transcript
         }));
       }
       resetTranscript();
     }
-  }, [transcript, isCreating, resetTranscript]);
+  }, [transcript, isCreating, editingCard, resetTranscript]);
 
   const handleCreateCard = () => {
     if (!newCard.question || !newCard.answer) return;
@@ -57,14 +51,14 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
       question: newCard.question,
       answer: newCard.answer,
       difficulty: 'medium',
-      mode: selectedMode
+      mode: 'maths'
     });
 
     setNewCard({ question: '', answer: '' });
     setIsCreating(false);
   };
 
-  const handleEditCard = (card: Flashcard)    () => {
+  const handleEditCard = (card: Flashcard) => {
     setEditingCard(card.id);
     setEditForm({ question: card.question, answer: card.answer });
   };
@@ -108,8 +102,6 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
 
   return (
     <div className="space-y-6">
-      <StudyModeSelector selectedMode={selectedMode} onModeChange={onModeChange} />
-
       {/* Study Session */}
       {isStudying && currentCard && (
         <Card className="mentora-card">
@@ -211,9 +203,10 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
                 variant="outline"
                 size="sm"
                 onClick={isListening ? stopListening : startListening}
+                className={isListening ? "bg-red-50 border-red-200" : ""}
               >
                 <Mic className="w-4 h-4 mr-2" />
-                {isListening ? 'Stop' : 'Voice Input'}
+                {isListening ? 'Stop Recording' : 'Voice Input'}
               </Button>
             </div>
 
@@ -261,7 +254,7 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
       {/* Cards Overview */}
       {!isStudying && !isCreating && showReviewSection && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {modeCards.map(card => (
+          {flashcards.map(card => (
             <Card key={card.id} className="mentora-card">
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -355,7 +348,7 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
         </div>
       )}
 
-      {modeCards.length === 0 && !isCreating && !isStudying && (
+      {flashcards.length === 0 && !isCreating && !isStudying && (
         <Card className="mentora-card">
           <CardContent className="text-center py-8">
             <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
