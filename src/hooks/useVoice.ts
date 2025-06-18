@@ -60,7 +60,7 @@ export const useVoice = () => {
   const [transcript, setTranscript] = useState('');
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback((onTranscript?: (text: string) => void) => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       console.error('Speech recognition not supported');
       return;
@@ -89,6 +89,9 @@ export const useVoice = () => {
         }
         if (finalTranscript) {
           setTranscript(finalTranscript);
+          if (onTranscript) {
+            onTranscript(finalTranscript);
+          }
         }
       };
 

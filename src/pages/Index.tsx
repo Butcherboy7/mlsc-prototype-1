@@ -4,6 +4,7 @@ import Navigation from '@/components/Navigation';
 import Notes from '@/components/Notes';
 import Flashcards from '@/components/Flashcards';
 import AIChat from '@/components/AIChat';
+import CareerGuide from '@/components/CareerGuide';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
 
 const Index = () => {
@@ -33,6 +34,8 @@ const Index = () => {
         return <Notes />;
       case 'flashcards':
         return <Flashcards />;
+      case 'career':
+        return <CareerGuide />;
       default:
         return <AIChat />;
     }

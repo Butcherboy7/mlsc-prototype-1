@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { Flashcard } from '@/types';
+import { storageUtils } from '@/utils/storage';
 
 const INTERVALS = {
   easy: [1, 6, 13, 30, 90], // days
@@ -22,23 +23,28 @@ export const useSpacedRepetition = () => {
   }, []);
 
   const updateCardDifficulty = useCallback((cardId: string, difficulty: 'easy' | 'medium' | 'hard') => {
-    setFlashcards(prev => prev.map(card => {
-      if (card.id === cardId) {
-        const newReviewCount = card.reviewCount + 1;
-        const nextReview = calculateNextReview(difficulty, newReviewCount);
-        const newStreak = difficulty === 'easy' ? card.streak + 1 : 0;
-        
-        return {
-          ...card,
-          difficulty,
-          reviewCount: newReviewCount,
-          nextReview,
-          streak: newStreak,
-          updatedAt: new Date()
-        };
-      }
-      return card;
-    }));
+    setFlashcards(prev => {
+      const updated = prev.map(card => {
+        if (card.id === cardId) {
+          const newReviewCount = card.reviewCount + 1;
+          const nextReview = calculateNextReview(difficulty, newReviewCount);
+          const newStreak = difficulty === 'easy' ? card.streak + 1 : 0;
+          
+          return {
+            ...card,
+            difficulty,
+            reviewCount: newReviewCount,
+            nextReview,
+            streak: newStreak,
+            updatedAt: new Date()
+          };
+        }
+        return card;
+      });
+      
+      storageUtils.saveFlashcards(updated);
+      return updated;
+    });
   }, [calculateNextReview]);
 
   const getDueCards = useCallback((): Flashcard[] => {
@@ -56,20 +62,35 @@ export const useSpacedRepetition = () => {
       createdAt: new Date(),
       updatedAt: new Date()
     };
-    setFlashcards(prev => [...prev, newCard]);
+    
+    setFlashcards(prev => {
+      const updated = [...prev, newCard];
+      storageUtils.saveFlashcards(updated);
+      return updated;
+    });
+    
     return newCard;
   }, []);
 
   const updateFlashcard = useCallback((cardId: string, updates: Partial<Flashcard>) => {
-    setFlashcards(prev => prev.map(card => 
-      card.id === cardId 
-        ? { ...card, ...updates, updatedAt: new Date() }
-        : card
-    ));
+    setFlashcards(prev => {
+      const updated = prev.map(card => 
+        card.id === cardId 
+          ? { ...card, ...updates, updatedAt: new Date() }
+          : card
+      );
+      
+      storageUtils.saveFlashcards(updated);
+      return updated;
+    });
   }, []);
 
   const deleteFlashcard = useCallback((cardId: string) => {
-    setFlashcards(prev => prev.filter(card => card.id !== cardId));
+    setFlashcards(prev => {
+      const updated = prev.filter(card => card.id !== cardId);
+      storageUtils.saveFlashcards(updated);
+      return updated;
+    });
   }, []);
 
   return {

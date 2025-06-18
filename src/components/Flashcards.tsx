@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StudyMode, Flashcard } from '@/types';
-import { Brain, Plus, RotateCcw, Check, X, Volume2, Mic, Edit, Save, Filter } from 'lucide-react';
+import { Brain, Plus, RotateCcw, Check, X, Volume2, Edit, Save, Filter, Calendar } from 'lucide-react';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
 import { useVoice } from '@/hooks/useVoice';
+import { storageUtils } from '@/utils/storage';
 
 const Flashcards: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
@@ -17,59 +18,67 @@ const Flashcards: React.FC = () => {
   const [editingCard, setEditingCard] = useState<string | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
-  const [newCard, setNewCard] = useState({ question: '', answer: '' });
+  const [newCard, setNewCard] = useState({ question: '', answer: '', reviewDate: '' });
   const [studySession, setStudySession] = useState<{ cards: Flashcard[], completed: number }>({ cards: [], completed: 0 });
   const [showReviewSection, setShowReviewSection] = useState(false);
-  const [editForm, setEditForm] = useState({ question: '', answer: '' });
+  const [editForm, setEditForm] = useState({ question: '', answer: '', reviewDate: '' });
 
-  const { flashcards, getDueCards, addFlashcard, updateCardDifficulty, deleteFlashcard, updateFlashcard } = useSpacedRepetition();
-  const { speak, isListening, startListening, stopListening, transcript, resetTranscript } = useVoice();
+  const { flashcards, getDueCards, addFlashcard, updateCardDifficulty, deleteFlashcard, updateFlashcard, setFlashcards } = useSpacedRepetition();
+  const { speak } = useVoice();
 
   const dueCards = getDueCards();
 
-  React.useEffect(() => {
-    if (transcript && transcript.trim()) {
-      if (isCreating) {
-        setNewCard(prev => ({ 
-          ...prev, 
-          question: prev.question ? prev.question + ' ' + transcript : transcript
-        }));
-      } else if (editingCard) {
-        setEditForm(prev => ({
-          ...prev,
-          question: prev.question ? prev.question + ' ' + transcript : transcript
-        }));
-      }
-      resetTranscript();
-    }
-  }, [transcript, isCreating, editingCard, resetTranscript]);
+  // Load flashcards from storage on mount
+  useEffect(() => {
+    const loadedFlashcards = storageUtils.loadFlashcards();
+    setFlashcards(loadedFlashcards);
+  }, [setFlashcards]);
+
+  // Save flashcards whenever they change
+  useEffect(() => {
+    storageUtils.saveFlashcards(flashcards);
+  }, [flashcards]);
 
   const handleCreateCard = () => {
     if (!newCard.question || !newCard.answer) return;
 
-    addFlashcard({
+    const reviewDate = newCard.reviewDate ? new Date(newCard.reviewDate) : new Date();
+
+    const card = addFlashcard({
       question: newCard.question,
       answer: newCard.answer,
       difficulty: 'medium',
       mode: 'maths'
     });
 
-    setNewCard({ question: '', answer: '' });
+    // Update review date if manually set
+    if (newCard.reviewDate) {
+      updateFlashcard(card.id, { nextReview: reviewDate });
+    }
+
+    setNewCard({ question: '', answer: '', reviewDate: '' });
     setIsCreating(false);
   };
 
   const handleEditCard = (card: Flashcard) => {
     setEditingCard(card.id);
-    setEditForm({ question: card.question, answer: card.answer });
+    setEditForm({ 
+      question: card.question, 
+      answer: card.answer,
+      reviewDate: card.nextReview.toISOString().split('T')[0]
+    });
   };
 
   const handleSaveEdit = (cardId: string) => {
+    const reviewDate = editForm.reviewDate ? new Date(editForm.reviewDate) : undefined;
+    
     updateFlashcard(cardId, {
       question: editForm.question,
-      answer: editForm.answer
+      answer: editForm.answer,
+      ...(reviewDate && { nextReview: reviewDate })
     });
     setEditingCard(null);
-    setEditForm({ question: '', answer: '' });
+    setEditForm({ question: '', answer: '', reviewDate: '' });
   };
 
   const startStudySession = () => {
@@ -96,6 +105,21 @@ const Flashcards: React.FC = () => {
       setShowAnswer(false);
     }
   };
+
+  // Function to add flashcard from external sources (like AI Chat)
+  const addFlashcardFromExternal = (question: string, answer: string) => {
+    addFlashcard({
+      question,
+      answer,
+      difficulty: 'medium',
+      mode: 'maths'
+    });
+  };
+
+  // Expose the function globally for AI Chat to use
+  React.useEffect(() => {
+    (window as any).addFlashcardFromAIChat = addFlashcardFromExternal;
+  }, []);
 
   const currentCard = isStudying ? studySession.cards[currentCardIndex] : null;
   const sessionProgress = isStudying ? (studySession.completed / studySession.cards.length) * 100 : 0;
@@ -198,16 +222,13 @@ const Flashcards: React.FC = () => {
               />
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={isListening ? stopListening : startListening}
-                className={isListening ? "bg-red-50 border-red-200" : ""}
-              >
-                <Mic className="w-4 h-4 mr-2" />
-                {isListening ? 'Stop Recording' : 'Voice Input'}
-              </Button>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Custom Review Date (Optional)</label>
+              <Input
+                type="date"
+                value={newCard.reviewDate}
+                onChange={(e) => setNewCard(prev => ({ ...prev, reviewDate: e.target.value }))}
+              />
             </div>
 
             <div className="flex gap-2">
@@ -218,7 +239,7 @@ const Flashcards: React.FC = () => {
                 variant="outline" 
                 onClick={() => {
                   setIsCreating(false);
-                  setNewCard({ question: '', answer: '' });
+                  setNewCard({ question: '', answer: '', reviewDate: '' });
                 }}
               >
                 Cancel
@@ -288,6 +309,15 @@ const Flashcards: React.FC = () => {
                       rows={2}
                       className="text-sm"
                     />
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">Review Date</label>
+                      <Input
+                        type="date"
+                        value={editForm.reviewDate}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, reviewDate: e.target.value }))}
+                        className="text-sm"
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <Button 
                         size="sm" 

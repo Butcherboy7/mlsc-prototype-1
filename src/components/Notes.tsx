@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { StudyNote } from '@/types';
 import { FileText, Plus, Search, Tag } from 'lucide-react';
+import { storageUtils } from '@/utils/storage';
 
 const Notes: React.FC = () => {
   const [notes, setNotes] = useState<StudyNote[]>([]);
@@ -19,6 +20,17 @@ const Notes: React.FC = () => {
     tagInput: ''
   });
 
+  // Load notes from storage on component mount
+  useEffect(() => {
+    const loadedNotes = storageUtils.loadNotes();
+    setNotes(loadedNotes);
+  }, []);
+
+  // Save notes whenever the notes state changes
+  useEffect(() => {
+    storageUtils.saveNotes(notes);
+  }, [notes]);
+
   const handleCreateNote = () => {
     if (!newNote.title || !newNote.content) return;
 
@@ -26,8 +38,8 @@ const Notes: React.FC = () => {
       id: crypto.randomUUID(),
       title: newNote.title,
       content: newNote.content,
-      summary: newNote.content.slice(0, 100) + '...',
-      mode: 'maths',
+      summary: newNote.content.slice(0, 100) + (newNote.content.length > 100 ? '...' : ''),
+      mode: 'maths', // Default mode since study modes are only in AI Chat
       tags: newNote.tags,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -64,6 +76,26 @@ const Notes: React.FC = () => {
     note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Function to add note from external sources (like AI Chat)
+  const addNoteFromExternal = (title: string, content: string, tags: string[] = []) => {
+    const note: StudyNote = {
+      id: crypto.randomUUID(),
+      title,
+      content,
+      summary: content.slice(0, 100) + (content.length > 100 ? '...' : ''),
+      mode: 'maths',
+      tags,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    setNotes(prev => [...prev, note]);
+  };
+
+  // Expose the function globally for AI Chat to use
+  React.useEffect(() => {
+    (window as any).addNoteFromAIChat = addNoteFromExternal;
+  }, []);
 
   return (
     <div className="space-y-6">

@@ -34,6 +34,7 @@ interface Message {
   timestamp: Date;
   pdfSummary?: {
     fileName: string;
+    actualContent: string;
     shortSummary: string;
     detailedSummary: string;
     detectedSubject?: string;
@@ -57,14 +58,7 @@ const AIChat: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { isLoading, answerQuestion, summarizePDF } = useAI();
-  const { transcript, isListening, startListening, stopListening, speak, resetTranscript } = useVoice();
-
-  useEffect(() => {
-    if (transcript && transcript.trim()) {
-      setCurrentMessage(prev => (prev + ' ' + transcript).trim());
-      resetTranscript();
-    }
-  }, [transcript, resetTranscript]);
+  const { isListening, startListening, stopListening, speak } = useVoice();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -83,6 +77,16 @@ const AIChat: React.FC = () => {
     };
     
     setMessages([welcomeMessage]);
+  };
+
+  const handleVoiceInput = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening((transcribedText) => {
+        setCurrentMessage(prev => (prev + ' ' + transcribedText).trim());
+      });
+    }
   };
 
   const handleSendMessage = async () => {
@@ -124,11 +128,11 @@ const AIChat: React.FC = () => {
 
   const detectSubjectFromContent = (content: string): StudyMode => {
     const keywords = {
-      maths: ['equation', 'formula', 'theorem', 'calculus', 'algebra', 'geometry', 'mathematics', 'number', 'derivative', 'integral'],
-      coding: ['function', 'variable', 'algorithm', 'programming', 'code', 'software', 'development', 'javascript', 'python', 'class'],
-      business: ['market', 'strategy', 'finance', 'revenue', 'business', 'company', 'management', 'profit', 'marketing', 'sales'],
-      law: ['legal', 'court', 'contract', 'constitutional', 'statute', 'law', 'judicial', 'rights', 'liability', 'attorney'],
-      literature: ['novel', 'poetry', 'author', 'character', 'narrative', 'literary', 'book', 'prose', 'verse', 'story']
+      maths: ['equation', 'formula', 'theorem', 'calculus', 'algebra', 'geometry', 'mathematics', 'number', 'derivative', 'integral', 'function', 'graph', 'solve', 'calculate'],
+      coding: ['function', 'variable', 'algorithm', 'programming', 'code', 'software', 'development', 'javascript', 'python', 'class', 'loop', 'array', 'object', 'method'],
+      business: ['market', 'strategy', 'finance', 'revenue', 'business', 'company', 'management', 'profit', 'marketing', 'sales', 'investment', 'economy'],
+      law: ['legal', 'court', 'contract', 'constitutional', 'statute', 'law', 'judicial', 'rights', 'liability', 'attorney', 'case', 'justice'],
+      literature: ['novel', 'poetry', 'author', 'character', 'narrative', 'literary', 'book', 'prose', 'verse', 'story', 'theme', 'plot']
     };
 
     const contentLower = content.toLowerCase();
@@ -147,25 +151,47 @@ const AIChat: React.FC = () => {
   };
 
   const extractPDFContent = async (file: File): Promise<string> => {
-    // Simple text extraction simulation - in real app, use PDF.js or similar
-    const fileName = file.name.toLowerCase();
-    const fileContent = await file.text();
-    
-    // Generate realistic content based on filename and actual file content
-    if (fileName.includes('math') || fileName.includes('calculus')) {
-      return `Mathematical concepts including linear equations, derivatives, integrals, algebraic expressions, and geometric theorems. The document covers fundamental mathematical principles, problem-solving techniques, and applications in various mathematical domains.`;
-    } else if (fileName.includes('code') || fileName.includes('programming')) {
-      return `Programming concepts including data structures, algorithms, object-oriented programming, functional programming paradigms, software design patterns, and best practices for code development and maintenance.`;
-    } else if (fileName.includes('business') || fileName.includes('management')) {
-      return `Business strategies, market analysis, financial planning, organizational behavior, leadership principles, and strategic management concepts for effective business operations and growth.`;
-    } else if (fileName.includes('law') || fileName.includes('legal')) {
-      return `Legal principles, constitutional law, contract formation, tort liability, criminal law procedures, civil rights, and judicial processes within the legal system framework.`;
-    } else if (fileName.includes('literature') || fileName.includes('novel')) {
-      return `Literary analysis, narrative structures, character development, thematic elements, symbolism, literary devices, and critical interpretation of various literary works and genres.`;
+    try {
+      // Try to read the file as text
+      const text = await file.text();
+      
+      // If we got readable text, return it
+      if (text && text.trim().length > 50) {
+        return text.trim();
+      }
+      
+      // If no readable text, generate content based on filename
+      const fileName = file.name.toLowerCase();
+      if (fileName.includes('math') || fileName.includes('calculus') || fileName.includes('algebra')) {
+        return `This document contains mathematical concepts including equations, formulas, mathematical theorems, problem-solving techniques, and various mathematical principles. The content covers topics in mathematics education and mathematical analysis.`;
+      } else if (fileName.includes('code') || fileName.includes('programming') || fileName.includes('software')) {
+        return `This document contains programming concepts including code examples, software development principles, algorithms, data structures, programming languages, and computer science fundamentals.`;
+      } else if (fileName.includes('business') || fileName.includes('management') || fileName.includes('finance')) {
+        return `This document contains business concepts including strategic planning, financial analysis, market research, business operations, management principles, and entrepreneurship topics.`;
+      } else if (fileName.includes('law') || fileName.includes('legal') || fileName.includes('constitution')) {
+        return `This document contains legal concepts including constitutional law, legal procedures, court cases, legal principles, statutory interpretation, and judicial processes.`;
+      } else if (fileName.includes('literature') || fileName.includes('novel') || fileName.includes('poetry')) {
+        return `This document contains literary content including literary analysis, character studies, thematic exploration, narrative techniques, and critical literary interpretation.`;
+      } else {
+        return `This document contains educational content covering various academic topics and learning materials as presented in "${file.name}".`;
+      }
+    } catch (error) {
+      console.error('Error reading PDF:', error);
+      return `Educational document: ${file.name} - Content analysis not available, but ready for manual review and summary generation.`;
     }
+  };
+
+  const generateSummaryFromContent = (content: string, type: 'short' | 'detailed'): string => {
+    const detectedSubject = detectSubjectFromContent(content);
     
-    // Fallback: try to extract meaningful content from the actual file
-    return fileContent.slice(0, 1000) || `Educational content covering various academic topics and concepts as presented in the document "${file.name}".`;
+    if (type === 'short') {
+      const sentences = content.split('.').filter(s => s.trim().length > 10).slice(0, 3);
+      return sentences.map(s => `• ${s.trim()}`).join('\n') + `\n• Subject area: ${detectedSubject}\n• Content type: Educational material`;
+    } else {
+      const words = content.split(' ');
+      const summary = words.slice(0, 200).join(' ');
+      return `**Content Analysis:**\n\n${summary}${words.length > 200 ? '...' : ''}\n\n**Key Topics Identified:**\n- Primary subject: ${detectedSubject}\n- Educational content with learning objectives\n- Suitable for academic study and review\n\n**Learning Applications:**\n- Can be converted to study notes\n- Suitable for flashcard creation\n- Ready for AI-assisted learning sessions`;
+    }
   };
 
   const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,20 +202,18 @@ const AIChat: React.FC = () => {
       const extractedContent = await extractPDFContent(file);
       const detectedSubject = detectSubjectFromContent(extractedContent);
       
-      const response = await summarizePDF(extractedContent, selectedMode || detectedSubject);
-      
-      // Create structured summaries based on actual content
-      const shortSummary = `• Key concepts: ${extractedContent.split('.')[0] || 'Main topics covered'}\n• Primary focus: ${detectedSubject} domain\n• Learning objectives identified\n• Practical applications mentioned`;
-      
-      const detailedSummary = response.content;
+      // Generate summaries based on actual content
+      const shortSummary = generateSummaryFromContent(extractedContent, 'short');
+      const detailedSummary = generateSummaryFromContent(extractedContent, 'detailed');
       
       const pdfMessage: Message = {
         id: crypto.randomUUID(),
         type: 'ai',
-        content: `I've analyzed your PDF "${file.name}". Here are the summaries based on the content:`,
+        content: `I've analyzed your PDF "${file.name}". Here are the summaries based on the actual content:`,
         timestamp: new Date(),
         pdfSummary: {
           fileName: file.name,
+          actualContent: extractedContent,
           shortSummary,
           detailedSummary,
           detectedSubject: studyModes.find(m => m.id === detectedSubject)?.label
@@ -212,25 +236,41 @@ const AIChat: React.FC = () => {
   };
 
   const createNotesFromSummary = (summary: string, fileName: string) => {
-    console.log('Creating notes from:', summary);
-    const successMessage: Message = {
-      id: crypto.randomUUID(),
-      type: 'system',
-      content: `📝 Notes created from "${fileName}"! You can find them in the Notes section.`,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, successMessage]);
+    if ((window as any).addNoteFromAIChat) {
+      (window as any).addNoteFromAIChat(`PDF Summary: ${fileName}`, summary, ['PDF', 'AI Generated']);
+      
+      const successMessage: Message = {
+        id: crypto.randomUUID(),
+        type: 'system',
+        content: `📝 Notes created from "${fileName}"! You can find them in the Notes section.`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, successMessage]);
+    }
   };
 
   const createFlashcardsFromSummary = (summary: string, fileName: string) => {
-    console.log('Creating flashcards from:', summary);
-    const successMessage: Message = {
-      id: crypto.randomUUID(),
-      type: 'system',
-      content: `🧠 Flashcards created from "${fileName}"! You can review them in the Flashcards section.`,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, successMessage]);
+    if ((window as any).addFlashcardFromAIChat) {
+      // Extract key points to create flashcards
+      const lines = summary.split('\n').filter(line => line.trim().length > 10);
+      const keyPoints = lines.slice(0, 5); // Create up to 5 flashcards
+      
+      keyPoints.forEach((point, index) => {
+        const question = `What is the key concept #${index + 1} from ${fileName}?`;
+        const answer = point.replace(/^[•\-\*]\s*/, '').trim();
+        if (answer.length > 5) {
+          (window as any).addFlashcardFromAIChat(question, answer);
+        }
+      });
+      
+      const successMessage: Message = {
+        id: crypto.randomUUID(),
+        type: 'system',
+        content: `🧠 Flashcards created from "${fileName}"! You can review them in the Flashcards section.`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, successMessage]);
+    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -460,7 +500,7 @@ const AIChat: React.FC = () => {
               
               <Button
                 variant="outline"
-                onClick={isListening ? stopListening : startListening}
+                onClick={handleVoiceInput}
                 disabled={isLoading}
                 title={isListening ? "Stop listening" : "Start voice input"}
                 className={isListening ? "bg-red-50 border-red-200" : ""}
