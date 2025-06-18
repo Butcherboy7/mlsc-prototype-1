@@ -20,7 +20,9 @@ import {
   Scale,
   BookText,
   Plus,
-  MessageCircle
+  MessageCircle,
+  Save,
+  Copy
 } from 'lucide-react';
 import { useAI } from '@/hooks/useAI';
 import { useVoice } from '@/hooks/useVoice';
@@ -34,6 +36,7 @@ interface Message {
     fileName: string;
     shortSummary: string;
     detailedSummary: string;
+    detectedSubject?: string;
   };
 }
 
@@ -58,7 +61,7 @@ const AIChat: React.FC = () => {
 
   useEffect(() => {
     if (transcript && transcript.trim()) {
-      setCurrentMessage(prev => prev + ' ' + transcript);
+      setCurrentMessage(prev => (prev + ' ' + transcript).trim());
       resetTranscript();
     }
   }, [transcript, resetTranscript]);
@@ -93,10 +96,11 @@ const AIChat: React.FC = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageToSend = currentMessage;
     setCurrentMessage('');
 
     try {
-      const response = await answerQuestion(currentMessage, selectedMode);
+      const response = await answerQuestion(messageToSend, selectedMode);
       
       const aiMessage: Message = {
         id: crypto.randomUUID(),
@@ -118,55 +122,104 @@ const AIChat: React.FC = () => {
     }
   };
 
+  const detectSubjectFromContent = (content: string): StudyMode => {
+    const keywords = {
+      maths: ['equation', 'formula', 'theorem', 'calculus', 'algebra', 'geometry', 'mathematics'],
+      coding: ['function', 'variable', 'algorithm', 'programming', 'code', 'software', 'development'],
+      business: ['market', 'strategy', 'finance', 'revenue', 'business', 'company', 'management'],
+      law: ['legal', 'court', 'contract', 'constitutional', 'statute', 'law', 'judicial'],
+      literature: ['novel', 'poetry', 'author', 'character', 'narrative', 'literary', 'book']
+    };
+
+    const contentLower = content.toLowerCase();
+    let maxMatches = 0;
+    let detectedSubject: StudyMode = 'maths';
+
+    Object.entries(keywords).forEach(([subject, words]) => {
+      const matches = words.filter(word => contentLower.includes(word)).length;
+      if (matches > maxMatches) {
+        maxMatches = matches;
+        detectedSubject = subject as StudyMode;
+      }
+    });
+
+    return detectedSubject;
+  };
+
   const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !selectedMode) return;
+    if (!file) return;
 
-    const text = `Content from ${file.name} - This is a demo text extraction.`;
+    // Simulate PDF text extraction - in real app, you'd use a PDF parsing library
+    const mockContent = `Content extracted from ${file.name}. This document contains educational material about various topics including mathematical concepts, theoretical frameworks, and practical applications.`;
+    
+    const detectedSubject = detectSubjectFromContent(mockContent);
     
     try {
-      const response = await summarizePDF(text, selectedMode);
+      const response = await summarizePDF(mockContent, selectedMode || detectedSubject);
+      
+      // Create structured summaries
+      const shortSummary = `• Key concepts identified\n• Main topics covered\n• Important definitions\n• Practical applications mentioned`;
+      const detailedSummary = response.content;
       
       const pdfMessage: Message = {
         id: crypto.randomUUID(),
         type: 'ai',
-        content: 'I\'ve analyzed your PDF. Here are the summaries:',
+        content: `I've analyzed your PDF "${file.name}". Here are the summaries:`,
         timestamp: new Date(),
         pdfSummary: {
           fileName: file.name,
-          shortSummary: response.content.slice(0, 200) + '...',
-          detailedSummary: response.content
+          shortSummary,
+          detailedSummary,
+          detectedSubject: studyModes.find(m => m.id === detectedSubject)?.label
         }
       };
 
       setMessages(prev => [...prev, pdfMessage]);
     } catch (error) {
       console.error('PDF processing error:', error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        type: 'system',
+        content: 'Sorry, I encountered an error processing your PDF. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
     }
 
     event.target.value = '';
   };
 
-  const createNotesFromSummary = (summary: string) => {
-    // This would integrate with the Notes component
+  const createNotesFromSummary = (summary: string, fileName: string) => {
+    // In a real app, this would integrate with the Notes component
     console.log('Creating notes from:', summary);
-    // For now, just show a success message
     const successMessage: Message = {
       id: crypto.randomUUID(),
       type: 'system',
-      content: 'Notes created successfully! You can find them in the Notes section.',
+      content: `📝 Notes created from "${fileName}"! You can find them in the Notes section.`,
       timestamp: new Date()
     };
     setMessages(prev => [...prev, successMessage]);
   };
 
-  const createFlashcardsFromSummary = (summary: string) => {
-    // This would integrate with the Flashcards component
+  const createFlashcardsFromSummary = (summary: string, fileName: string) => {
+    // In a real app, this would integrate with the Flashcards component
     console.log('Creating flashcards from:', summary);
     const successMessage: Message = {
       id: crypto.randomUUID(),
       type: 'system',
-      content: 'Flashcards created successfully! You can review them in the Flashcards section.',
+      content: `🧠 Flashcards created from "${fileName}"! You can review them in the Flashcards section.`,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, successMessage]);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    const successMessage: Message = {
+      id: crypto.randomUUID(),
+      type: 'system',
+      content: '📋 Copied to clipboard!',
       timestamp: new Date()
     };
     setMessages(prev => [...prev, successMessage]);
@@ -182,7 +235,7 @@ const AIChat: React.FC = () => {
           isUser 
             ? 'bg-primary text-primary-foreground' 
             : isSystem 
-            ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
+            ? 'bg-blue-50 border border-blue-200 text-blue-800'
             : 'bg-muted'
         }`}>
           <div className="prose prose-sm max-w-none">
@@ -192,21 +245,50 @@ const AIChat: React.FC = () => {
           </div>
 
           {message.pdfSummary && (
-            <div className="mt-4 space-y-3 border-t pt-3">
+            <div className="mt-4 space-y-4 border-t pt-4">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 <span className="font-medium">{message.pdfSummary.fileName}</span>
+                {message.pdfSummary.detectedSubject && (
+                  <Badge variant="outline" className="text-xs">
+                    {message.pdfSummary.detectedSubject}
+                  </Badge>
+                )}
               </div>
               
-              <div className="space-y-2">
-                <div>
-                  <h4 className="font-medium text-sm mb-1">Quick Summary:</h4>
-                  <p className="text-sm opacity-90">{message.pdfSummary.shortSummary}</p>
+              <div className="space-y-3">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-sm text-green-800">📋 Quick Summary</h4>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => copyToClipboard(message.pdfSummary!.shortSummary)}
+                      className="h-6 px-2"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div className="text-sm text-green-700 whitespace-pre-line">
+                    {message.pdfSummary.shortSummary}
+                  </div>
                 </div>
                 
-                <div>
-                  <h4 className="font-medium text-sm mb-1">Detailed Summary:</h4>
-                  <p className="text-sm opacity-90">{message.pdfSummary.detailedSummary}</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-sm text-blue-800">📖 Detailed Summary</h4>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => copyToClipboard(message.pdfSummary!.detailedSummary)}
+                      className="h-6 px-2"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <div className="text-sm text-blue-700 whitespace-pre-line">
+                    {message.pdfSummary.detailedSummary}
+                  </div>
                 </div>
               </div>
 
@@ -214,15 +296,17 @@ const AIChat: React.FC = () => {
                 <Button 
                   size="sm" 
                   variant="outline"
-                  onClick={() => createNotesFromSummary(message.pdfSummary!.detailedSummary)}
+                  onClick={() => createNotesFromSummary(message.pdfSummary!.detailedSummary, message.pdfSummary!.fileName)}
+                  className="flex-1"
                 >
-                  <FileText className="w-3 h-3 mr-1" />
-                  Create Notes
+                  <Save className="w-3 h-3 mr-1" />
+                  Save as Notes
                 </Button>
                 <Button 
                   size="sm" 
                   variant="outline"
-                  onClick={() => createFlashcardsFromSummary(message.pdfSummary!.detailedSummary)}
+                  onClick={() => createFlashcardsFromSummary(message.pdfSummary!.detailedSummary, message.pdfSummary!.fileName)}
+                  className="flex-1"
                 >
                   <Brain className="w-3 h-3 mr-1" />
                   Create Flashcards
@@ -334,7 +418,7 @@ const AIChat: React.FC = () => {
                 placeholder="Ask me anything..."
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                 disabled={isLoading}
               />
               
@@ -350,6 +434,7 @@ const AIChat: React.FC = () => {
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
+                title="Upload PDF"
               >
                 <Upload className="w-4 h-4" />
               </Button>
@@ -358,8 +443,10 @@ const AIChat: React.FC = () => {
                 variant="outline"
                 onClick={isListening ? stopListening : startListening}
                 disabled={isLoading}
+                title={isListening ? "Stop listening" : "Start voice input"}
+                className={isListening ? "bg-red-50 border-red-200" : ""}
               >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isListening ? <MicOff className="w-4 h-4 text-red-600" /> : <Mic className="w-4 h-4" />}
               </Button>
             </div>
             

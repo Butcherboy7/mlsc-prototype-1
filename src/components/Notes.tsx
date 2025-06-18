@@ -5,183 +5,135 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { StudyMode, StudyNote } from '@/types';
-import { FileText, Upload, Sparkles, Search, Edit, Trash2, Mic, Volume2 } from 'lucide-react';
-import { useAI } from '@/hooks/useAI';
-import { useVoice } from '@/hooks/useVoice';
-import StudyModeSelector from './StudyModeSelector';
+import { StudyNote } from '@/types';
+import { FileText, Plus, Search, Tag } from 'lucide-react';
 
-interface NotesProps {
-  selectedMode: StudyMode;
-  onModeChange: (mode: StudyMode) => void;
-}
-
-const Notes: React.FC<NotesProps> = ({ selectedMode, onModeChange }) => {
+const Notes: React.FC = () => {
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [isCreating, setIsCreating] = useState(false);
-  const [editingNote, setEditingNote] = useState<StudyNote | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [newNote, setNewNote] = useState({ title: '', content: '', tags: '' });
-  const [pdfText, setPdfText] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [newNote, setNewNote] = useState({
+    title: '',
+    content: '',
+    tags: [] as string[],
+    tagInput: ''
+  });
 
-  const { isLoading, generateNotes, summarizePDF } = useAI();
-  const { transcript, isListening, startListening, stopListening, speak, resetTranscript } = useVoice();
-
-  React.useEffect(() => {
-    if (transcript && isCreating) {
-      setNewNote(prev => ({ ...prev, content: prev.content + ' ' + transcript }));
-      resetTranscript();
-    }
-  }, [transcript, isCreating, resetTranscript]);
-
-  const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Simple text extraction (in a real app, use a proper PDF library)
-    const text = `Extracted text from ${file.name}. This is a mock extraction for demo purposes.`;
-    setPdfText(text);
-
-    try {
-      const response = await summarizePDF(text, selectedMode);
-      setNewNote({
-        title: `Summary: ${file.name}`,
-        content: response.content,
-        tags: selectedMode
-      });
-      setIsCreating(true);
-    } catch (error) {
-      console.error('PDF processing error:', error);
-    }
-  };
-
-  const handleGenerateNotes = async () => {
-    if (!newNote.title) return;
-
-    try {
-      const response = await generateNotes(newNote.title, selectedMode);
-      setNewNote(prev => ({ ...prev, content: response.content }));
-    } catch (error) {
-      console.error('Note generation error:', error);
-    }
-  };
-
-  const handleSaveNote = () => {
+  const handleCreateNote = () => {
     if (!newNote.title || !newNote.content) return;
 
     const note: StudyNote = {
       id: crypto.randomUUID(),
       title: newNote.title,
       content: newNote.content,
-      summary: newNote.content.slice(0, 150) + '...',
-      mode: selectedMode,
-      tags: newNote.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      summary: newNote.content.slice(0, 100) + '...',
+      mode: 'maths', // Default mode since we removed mode selection
+      tags: newNote.tags,
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    if (editingNote) {
-      setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...note, id: editingNote.id } : n));
-      setEditingNote(null);
-    } else {
-      setNotes(prev => [...prev, note]);
-    }
-
-    setNewNote({ title: '', content: '', tags: '' });
+    setNotes(prev => [...prev, note]);
+    setNewNote({ title: '', content: '', tags: [], tagInput: '' });
     setIsCreating(false);
   };
 
-  const handleEditNote = (note: StudyNote) => {
-    setEditingNote(note);
-    setNewNote({
-      title: note.title,
-      content: note.content,
-      tags: note.tags.join(', ')
-    });
-    setIsCreating(true);
+  const handleAddTag = () => {
+    if (newNote.tagInput.trim() && !newNote.tags.includes(newNote.tagInput.trim())) {
+      setNewNote(prev => ({
+        ...prev,
+        tags: [...prev.tags, prev.tagInput.trim()],
+        tagInput: ''
+      }));
+    }
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    setNotes(prev => prev.filter(n => n.id !== noteId));
+  const removeTag = (tagToRemove: string) => {
+    setNewNote(prev => ({
+      ...prev,
+      tags: prev.tags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const deleteNote = (noteId: string) => {
+    setNotes(prev => prev.filter(note => note.id !== noteId));
   };
 
   const filteredNotes = notes.filter(note =>
-    note.mode === selectedMode &&
-    (note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
+    note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-
-  const renderMarkdown = (content: string) => {
-    // Simple markdown rendering for demo
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br>');
-  };
 
   return (
     <div className="space-y-6">
-      <StudyModeSelector selectedMode={selectedMode} onModeChange={onModeChange} />
-
-      {/* Create/Edit Note */}
+      {/* Create Note */}
       {isCreating && (
-        <Card className="mentora-card">
+        <Card>
           <CardHeader>
-            <CardTitle>{editingNote ? 'Edit Note' : 'Create New Note'}</CardTitle>
+            <CardTitle>Create New Note</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Input
-              placeholder="Note title"
-              value={newNote.title}
-              onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
-            />
-            
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleGenerateNotes}
-                disabled={isLoading || !newNote.title}
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                Generate with AI
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={isListening ? stopListening : startListening}
-              >
-                <Mic className="w-4 h-4 mr-2" />
-                {isListening ? 'Stop' : 'Voice Input'}
-              </Button>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Title</label>
+              <Input
+                placeholder="Enter note title"
+                value={newNote.title}
+                onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
+              />
             </div>
 
-            <Textarea
-              placeholder="Note content (supports markdown)"
-              value={newNote.content}
-              onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
-              rows={10}
-              className="font-mono text-sm"
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Content</label>
+              <Textarea
+                placeholder="Write your notes here..."
+                value={newNote.content}
+                onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
+                rows={8}
+              />
+            </div>
 
-            <Input
-              placeholder="Tags (comma-separated)"
-              value={newNote.tags}
-              onChange={(e) => setNewNote(prev => ({ ...prev, tags: e.target.value }))}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tags</label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a tag"
+                  value={newNote.tagInput}
+                  onChange={(e) => setNewNote(prev => ({ ...prev, tagInput: e.target.value }))}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                />
+                <Button variant="outline" onClick={handleAddTag}>
+                  <Tag className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {newNote.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {newNote.tags.map(tag => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() => removeTag(tag)}
+                    >
+                      {tag} ×
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="flex gap-2">
-              <Button onClick={handleSaveNote} disabled={!newNote.title || !newNote.content}>
-                Save Note
+              <Button onClick={handleCreateNote} disabled={!newNote.title || !newNote.content}>
+                Create Note
               </Button>
-              <Button variant="outline" onClick={() => {
-                setIsCreating(false);
-                setEditingNote(null);
-                setNewNote({ title: '', content: '', tags: '' });
-              }}>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsCreating(false);
+                  setNewNote({ title: '', content: '', tags: [], tagInput: '' });
+                }}
+              >
                 Cancel
               </Button>
             </div>
@@ -189,110 +141,93 @@ const Notes: React.FC<NotesProps> = ({ selectedMode, onModeChange }) => {
         </Card>
       )}
 
-      {/* Quick Actions */}
+      {/* Search and Actions */}
       {!isCreating && (
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex gap-2">
-            <Button onClick={() => setIsCreating(true)}>
-              <FileText className="w-4 h-4 mr-2" />
-              New Note
-            </Button>
-            
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={handlePDFUpload}
-                className="hidden"
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search notes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
               />
-              <Button variant="outline" asChild>
-                <span>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload PDF
-                </span>
-              </Button>
-            </label>
+            </div>
           </div>
-
-          <div className="relative w-full sm:w-auto">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 w-full sm:w-64"
-            />
-          </div>
+          
+          <Button onClick={() => setIsCreating(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Note
+          </Button>
         </div>
       )}
 
-      {/* Notes List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredNotes.map(note => (
-          <Card key={note.id} className="mentora-card">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-lg line-clamp-2">{note.title}</CardTitle>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => speak(note.content)}
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEditNote(note)}
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteNote(note.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div 
-                className="text-sm text-muted-foreground mb-3 line-clamp-3"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(note.summary) }}
-              />
-              
-              <div className="flex flex-wrap gap-1 mb-3">
-                {note.tags.map(tag => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-              
-              <p className="text-xs text-muted-foreground">
-                {new Date(note.updatedAt).toLocaleDateString()}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredNotes.length === 0 && !isCreating && (
-        <Card className="mentora-card">
-          <CardContent className="text-center py-8">
-            <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No notes yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first note or upload a PDF to get started
-            </p>
-            <Button onClick={() => setIsCreating(true)}>
-              Create Note
-            </Button>
-          </CardContent>
-        </Card>
+      {/* Notes Grid */}
+      {!isCreating && (
+        <>
+          {filteredNotes.length === 0 && notes.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No notes yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first note or generate one from AI Chat
+                </p>
+                <Button onClick={() => setIsCreating(true)}>
+                  Create Note
+                </Button>
+              </CardContent>
+            </Card>
+          ) : filteredNotes.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">No matching notes</h3>
+                <p className="text-muted-foreground">
+                  Try adjusting your search terms
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredNotes.map(note => (
+                <Card key={note.id} className="h-fit">
+                  <CardHeader>
+                    <CardTitle className="text-lg line-clamp-2">{note.title}</CardTitle>
+                    <div className="text-xs text-muted-foreground">
+                      {note.createdAt.toLocaleDateString()}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
+                      {note.content}
+                    </p>
+                    
+                    {note.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {note.tags.map(tag => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteNote(note.id)}
+                      className="w-full text-destructive hover:text-destructive"
+                    >
+                      Delete
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

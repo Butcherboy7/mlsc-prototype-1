@@ -1,9 +1,7 @@
-
 import React from 'react';
-import { MessageCircle, FileText, Brain, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { MessageCircle, FileText, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useVoice } from '@/hooks/useVoice';
 
 interface NavigationProps {
   activeTab: string;
@@ -12,8 +10,6 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCardsCount }) => {
-  const { isListening, isSpeaking, startListening, stopListening, stopSpeaking } = useVoice();
-
   const tabs = [
     { id: 'chat', label: 'AI Chat', icon: MessageCircle },
     { id: 'notes', label: 'Notes', icon: FileText },
@@ -55,29 +51,8 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCard
             })}
           </div>
 
-          {/* Voice Controls */}
-          <div className="flex items-center space-x-2">
-            <Button
-              variant={isListening ? "destructive" : "outline"}
-              size="sm"
-              onClick={isListening ? stopListening : startListening}
-              className="hidden sm:flex"
-            >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              {isListening && <span className="voice-indicator ml-2" />}
-            </Button>
-            
-            {isSpeaking && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={stopSpeaking}
-                className="hidden sm:flex"
-              >
-                <VolumeX className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
+          {/* Mobile placeholder - keep layout consistent */}
+          <div className="w-8"></div>
         </div>
 
         {/* Mobile Navigation */}

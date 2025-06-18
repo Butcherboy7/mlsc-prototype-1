@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StudyMode, Flashcard } from '@/types';
-import { Brain, Plus, RotateCcw, Check, X, Volume2, Mic } from 'lucide-react';
+import { Brain, Plus, RotateCcw, Check, X, Volume2, Mic, Edit, Save, Filter } from 'lucide-react';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
 import { useVoice } from '@/hooks/useVoice';
 import StudyModeSelector from './StudyModeSelector';
@@ -20,12 +20,15 @@ interface FlashcardsProps {
 const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
+  const [editingCard, setEditingCard] = useState<string | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [newCard, setNewCard] = useState({ question: '', answer: '' });
   const [studySession, setStudySession] = useState<{ cards: Flashcard[], completed: number }>({ cards: [], completed: 0 });
+  const [showReviewSection, setShowReviewSection] = useState(false);
+  const [editForm, setEditForm] = useState({ question: '', answer: '' });
 
-  const { flashcards, getDueCards, addFlashcard, updateCardDifficulty, deleteFlashcard } = useSpacedRepetition();
+  const { flashcards, getDueCards, addFlashcard, updateCardDifficulty, deleteFlashcard, updateFlashcard } = useSpacedRepetition();
   const { speak, isListening, startListening, stopListening, transcript, resetTranscript } = useVoice();
 
   const modeCards = flashcards.filter(card => card.mode === selectedMode);
@@ -59,6 +62,20 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
 
     setNewCard({ question: '', answer: '' });
     setIsCreating(false);
+  };
+
+  const handleEditCard = (card: Flashcard)    () => {
+    setEditingCard(card.id);
+    setEditForm({ question: card.question, answer: card.answer });
+  };
+
+  const handleSaveEdit = (cardId: string) => {
+    updateFlashcard(cardId, {
+      question: editForm.question,
+      answer: editForm.answer
+    });
+    setEditingCard(null);
+    setEditForm({ question: '', answer: '' });
   };
 
   const startStudySession = () => {
@@ -230,51 +247,108 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
             <Plus className="w-4 h-4 mr-2" />
             Create Flashcard
           </Button>
+
+          <Button 
+            variant="outline" 
+            onClick={() => setShowReviewSection(!showReviewSection)}
+          >
+            <Filter className="w-4 h-4 mr-2" />
+            {showReviewSection ? 'Hide' : 'Show'} All Cards
+          </Button>
         </div>
       )}
 
       {/* Cards Overview */}
-      {!isStudying && !isCreating && (
+      {!isStudying && !isCreating && showReviewSection && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {modeCards.map(card => (
             <Card key={card.id} className="mentora-card">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-sm line-clamp-2">{card.question}</CardTitle>
-                  <Badge 
-                    variant="outline" 
-                    className={
-                      card.difficulty === 'easy' ? 'spaced-repetition-easy' :
-                      card.difficulty === 'medium' ? 'spaced-repetition-medium' :
-                      'spaced-repetition-hard'
-                    }
-                  >
-                    {card.difficulty}
-                  </Badge>
+                  <div className="flex gap-1">
+                    <Badge 
+                      variant="outline" 
+                      className={
+                        card.difficulty === 'easy' ? 'spaced-repetition-easy' :
+                        card.difficulty === 'medium' ? 'spaced-repetition-medium' :
+                        'spaced-repetition-hard'
+                      }
+                    >
+                      {card.difficulty}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {card.answer}
-                </p>
-                
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Streak: {card.streak}</span>
-                  <span>Reviews: {card.reviewCount}</span>
-                </div>
-                
-                <div className="mt-3 text-xs text-muted-foreground">
-                  Next review: {new Date(card.nextReview).toLocaleDateString()}
-                </div>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => deleteFlashcard(card.id)}
-                  className="mt-2 w-full text-destructive hover:text-destructive"
-                >
-                  Delete
-                </Button>
+                {editingCard === card.id ? (
+                  <div className="space-y-3">
+                    <Textarea
+                      value={editForm.question}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, question: e.target.value }))}
+                      rows={2}
+                      className="text-sm"
+                    />
+                    <Textarea
+                      value={editForm.answer}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, answer: e.target.value }))}
+                      rows={2}
+                      className="text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleSaveEdit(card.id)}
+                        disabled={!editForm.question || !editForm.answer}
+                      >
+                        <Save className="w-3 h-3 mr-1" />
+                        Save
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => setEditingCard(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {card.answer}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                      <span>Streak: {card.streak}</span>
+                      <span>Reviews: {card.reviewCount}</span>
+                    </div>
+                    
+                    <div className="mb-3 text-xs text-muted-foreground">
+                      Next review: {new Date(card.nextReview).toLocaleDateString()}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditCard(card)}
+                        className="flex-1"
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteFlashcard(card.id)}
+                        className="flex-1 text-destructive hover:text-destructive"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -287,7 +361,7 @@ const Flashcards: React.FC<FlashcardsProps> = ({ selectedMode, onModeChange }) =
             <Brain className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No flashcards yet</h3>
             <p className="text-muted-foreground mb-4">
-              Create your first flashcard to start studying with spaced repetition
+              Create your first flashcard or generate them from AI Chat
             </p>
             <Button onClick={() => setIsCreating(true)}>
               Create Flashcard
