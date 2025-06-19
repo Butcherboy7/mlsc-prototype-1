@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,12 +5,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { StudyNote } from '@/types';
-import { FileText, Plus, Search, Tag, Sparkles, Download } from 'lucide-react';
+import { FileText, Plus, Search, Tag, Sparkles, Download, ArrowLeft } from 'lucide-react';
 import { storageUtils } from '@/utils/storage';
 import { openAIService } from '@/lib/openai';
 import { exportToPDF } from '@/lib/pdf';
 
-const Notes: React.FC = () => {
+interface NotesProps {
+  onBack: () => void;
+}
+
+const Notes: React.FC<NotesProps> = ({ onBack }) => {
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -119,6 +122,19 @@ const Notes: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Dashboard
+        </Button>
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">Smart Notes</h1>
+          <p className="text-muted-foreground">Create and generate AI-powered notes</p>
+        </div>
+        <div></div>
+      </div>
+
       {/* AI Generate Section */}
       {!isCreating && (
         <Card>
@@ -139,16 +155,11 @@ const Notes: React.FC = () => {
               />
               <Button 
                 onClick={handleGenerateNote} 
-                disabled={!generateTopic.trim() || isGenerating || !openAIService.getApiKey()}
+                disabled={!generateTopic.trim() || isGenerating}
               >
                 {isGenerating ? 'Generating...' : 'Generate'}
               </Button>
             </div>
-            {!openAIService.getApiKey() && (
-              <p className="text-sm text-muted-foreground">
-                Configure your OpenAI API key in the AI Chat section to use this feature.
-              </p>
-            )}
           </CardContent>
         </Card>
       )}

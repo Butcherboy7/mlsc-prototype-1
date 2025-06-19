@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Briefcase, User, Target, TrendingUp, BookOpen, Users, Award, AlertTriangle } from 'lucide-react';
+import { Briefcase, User, Target, TrendingUp, BookOpen, Users, Award, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 interface Question {
   id: number;
@@ -211,7 +210,11 @@ const questions: Question[] = [
   }
 ];
 
-const CareerGuide: React.FC = () => {
+interface CareerGuideProps {
+  onBack: () => void;
+}
+
+const CareerGuide: React.FC<CareerGuideProps> = ({ onBack }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
@@ -255,14 +258,27 @@ const CareerGuide: React.FC = () => {
   if (!testStarted) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+          <div className="text-center">
+            <h1 className="text-3xl font-bold">Career Guide</h1>
+            <p className="text-muted-foreground">Discover your ideal career path</p>
+          </div>
+          <div></div>
+        </div>
+
         <Card>
           <CardHeader className="text-center">
             <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl">Career Guide</CardTitle>
+            <CardTitle className="text-2xl">MBTI Personality Assessment</CardTitle>
             <p className="text-muted-foreground">
-              Discover your personality type with our comprehensive 15-question MBTI-style assessment
+              Discover your personality type with our comprehensive 15-question assessment
             </p>
           </CardHeader>
           <CardContent className="space-y-6">

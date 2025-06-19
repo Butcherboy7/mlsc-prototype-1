@@ -1,10 +1,8 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { StudyMode } from '@/types';
 import { 
   Send, 
   Mic, 
@@ -23,7 +21,8 @@ import {
   Save,
   Copy,
   Download,
-  Key
+  Key,
+  ArrowLeft
 } from 'lucide-react';
 import { useVoice } from '@/hooks/useVoice';
 import { openAIService } from '@/lib/openai';
@@ -44,21 +43,23 @@ interface Message {
   };
 }
 
+interface AIChatProps {
+  selectedMode: string | null;
+  onBack: () => void;
+}
+
 const studyModes = [
-  { id: 'maths' as StudyMode, label: 'Maths Tutor', icon: Calculator, prompt: 'You are an expert mathematics tutor. Help students understand mathematical concepts, solve problems step-by-step, and provide clear explanations.' },
-  { id: 'coding' as StudyMode, label: 'Code Mentor', icon: Code, prompt: 'You are a programming expert and mentor. Help with coding problems, explain programming concepts, review code, and guide best practices across multiple programming languages.' },
-  { id: 'business' as StudyMode, label: 'Business Coach', icon: Briefcase, prompt: 'You are a business strategy coach. Help with startup advice, business planning, marketing strategies, financial planning, and entrepreneurship guidance.' },
-  { id: 'law' as StudyMode, label: 'Legal Advisor', icon: Scale, prompt: 'You are a legal education advisor. Help explain legal concepts, constitutional law, case studies, and legal principles for educational purposes.' },
-  { id: 'literature' as StudyMode, label: 'Literature Guide', icon: BookText, prompt: 'You are a literature and writing expert. Help with literary analysis, creative writing, critical thinking, essay writing, and understanding literary works.' }
+  { id: 'maths', label: 'Maths Tutor', icon: Calculator, prompt: 'You are an expert mathematics tutor. Help students understand mathematical concepts, solve problems step-by-step, and provide clear explanations with examples.' },
+  { id: 'coding', label: 'Code Mentor', icon: Code, prompt: 'You are a programming expert and mentor. Help with coding problems, explain programming concepts, review code, and guide best practices across multiple programming languages.' },
+  { id: 'business', label: 'Business Coach', icon: Briefcase, prompt: 'You are a business strategy coach. Help with startup advice, business planning, marketing strategies, financial planning, and entrepreneurship guidance.' },
+  { id: 'legal', label: 'Legal Advisor', icon: Scale, prompt: 'You are a legal education advisor. Help explain legal concepts, constitutional law, case studies, and legal principles for educational purposes.' },
+  { id: 'literature', label: 'Literature Guide', icon: BookText, prompt: 'You are a literature and writing expert. Help with literary analysis, creative writing, critical thinking, essay writing, and understanding literary works.' }
 ];
 
-const AIChat: React.FC = () => {
+const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
-  const [selectedMode, setSelectedMode] = useState<StudyMode | null>(null);
-  const [showModeSelector, setShowModeSelector] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [showApiSettings, setShowApiSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,26 +70,19 @@ const AIChat: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
-    // Check if API key is available
-    if (!openAIService.getApiKey()) {
-      setShowApiSettings(true);
+    if (selectedMode) {
+      const modeInfo = studyModes.find(m => m.id === selectedMode);
+      if (modeInfo) {
+        const welcomeMessage: Message = {
+          id: crypto.randomUUID(),
+          type: 'ai',
+          content: `Hello! I'm your ${modeInfo.label}. I'm here to help you learn and understand ${selectedMode === 'maths' ? 'mathematics' : selectedMode === 'coding' ? 'programming' : selectedMode === 'business' ? 'business concepts' : selectedMode === 'legal' ? 'legal principles' : 'literature'}. What would you like to explore today?`,
+          timestamp: new Date()
+        };
+        setMessages([welcomeMessage]);
+      }
     }
-  }, []);
-
-  const handleModeSelect = (mode: StudyMode) => {
-    setSelectedMode(mode);
-    setShowModeSelector(false);
-    
-    const modeInfo = studyModes.find(m => m.id === mode);
-    const welcomeMessage: Message = {
-      id: crypto.randomUUID(),
-      type: 'ai',
-      content: `Hello! I'm your ${modeInfo?.label}. ${modeInfo?.prompt.split('.')[1]} How can I help you learn today?`,
-      timestamp: new Date()
-    };
-    
-    setMessages([welcomeMessage]);
-  };
+  }, [selectedMode]);
 
   const handleVoiceInput = () => {
     if (isListening) {
@@ -102,11 +96,6 @@ const AIChat: React.FC = () => {
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim() || !selectedMode || isLoading) return;
-
-    if (!openAIService.getApiKey()) {
-      setShowApiSettings(true);
-      return;
-    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -151,7 +140,7 @@ const AIChat: React.FC = () => {
 
   const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !openAIService.getApiKey()) return;
+    if (!file) return;
 
     setIsLoading(true);
 
@@ -384,67 +373,17 @@ const AIChat: React.FC = () => {
     );
   };
 
-  if (showApiSettings) {
+  if (!selectedMode) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
-        <APIKeySettings onApiKeySet={() => setShowApiSettings(false)} />
-        <div className="text-center">
-          <p className="text-muted-foreground text-sm">
-            You need an OpenAI API key to use the AI features. Get one from{' '}
-            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary underline">
-              OpenAI's website
-            </a>
-          </p>
-        </div>
+      <div className="max-w-2xl mx-auto text-center space-y-4">
+        <h2 className="text-2xl font-bold">No study mode selected</h2>
+        <p className="text-muted-foreground">Please select a study mode from the dashboard.</p>
+        <Button onClick={onBack}>Back to Dashboard</Button>
       </div>
     );
   }
 
-  if (showModeSelector) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold">Welcome to Mentora</h1>
-          <p className="text-muted-foreground text-lg">Choose your AI tutor to start learning</p>
-          
-          <div className="flex justify-center">
-            <Button variant="outline" onClick={() => setShowApiSettings(true)}>
-              <Key className="w-4 h-4 mr-2" />
-              API Settings
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {studyModes.map(mode => {
-            const Icon = mode.icon;
-            return (
-              <Card 
-                key={mode.id} 
-                className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
-                onClick={() => handleModeSelect(mode.id)}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-2">{mode.label}</h3>
-                      <p className="text-muted-foreground text-sm">{mode.prompt.split('.')[0]}.</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+  const currentModeInfo = studyModes.find(m => m.id === selectedMode);
 
   return (
     <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-200px)]">
@@ -453,44 +392,26 @@ const AIChat: React.FC = () => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              {selectedMode && (
+              {currentModeInfo && (
                 <>
-                  {React.createElement(studyModes.find(m => m.id === selectedMode)?.icon || MessageCircle, {
+                  {React.createElement(currentModeInfo.icon, {
                     className: "w-6 h-6"
                   })}
                   <div>
                     <CardTitle className="text-lg">
-                      {studyModes.find(m => m.id === selectedMode)?.label}
+                      {currentModeInfo.label}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Powered by OpenAI GPT
+                      Powered by OpenAI GPT-4
                     </p>
                   </div>
                 </>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowApiSettings(true)}
-              >
-                <Key className="w-4 h-4 mr-2" />
-                API Settings
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => {
-                  setShowModeSelector(true);
-                  setMessages([]);
-                  setSelectedMode(null);
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Change Tutor
-              </Button>
-            </div>
+            <Button variant="outline" size="sm" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
           </div>
         </CardHeader>
       </Card>

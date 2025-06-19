@@ -5,11 +5,15 @@ import Notes from '@/components/Notes';
 import Flashcards from '@/components/Flashcards';
 import AIChat from '@/components/AIChat';
 import CareerGuide from '@/components/CareerGuide';
+import WelcomeDashboard from '@/components/WelcomeDashboard';
+import PDFSummarizer from '@/components/PDFSummarizer';
+import CodeLab from '@/components/CodeLab';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<string | null>(null);
   
   const { getDueCards } = useSpacedRepetition();
   const dueCardsCount = getDueCards().length;
@@ -26,32 +30,58 @@ const Index = () => {
     setIsDarkMode(!isDarkMode);
   };
 
-  const renderActiveComponent = () => {
-    switch (activeTab) {
-      case 'chat':
-        return <AIChat />;
-      case 'notes':
-        return <Notes />;
-      case 'flashcards':
-        return <Flashcards />;
-      case 'career':
-        return <CareerGuide />;
-      default:
-        return <AIChat />;
+  const handleSelectMode = (mode: string) => {
+    if (['maths', 'coding', 'business', 'legal', 'literature', 'codelab'].includes(mode)) {
+      setSelectedMode(mode);
+      setActiveTab('chat');
+    } else {
+      setActiveTab(mode);
+      setSelectedMode(null);
     }
   };
 
+  const handleBackToDashboard = () => {
+    setActiveTab('dashboard');
+    setSelectedMode(null);
+  };
+
+  const renderActiveComponent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <WelcomeDashboard onSelectMode={handleSelectMode} />;
+      case 'chat':
+        return <AIChat selectedMode={selectedMode} onBack={handleBackToDashboard} />;
+      case 'notes':
+        return <Notes onBack={handleBackToDashboard} />;
+      case 'flashcards':
+        return <Flashcards onBack={handleBackToDashboard} />;
+      case 'career':
+        return <CareerGuide onBack={handleBackToDashboard} />;
+      case 'pdf':
+        return <PDFSummarizer onBack={handleBackToDashboard} />;
+      case 'codelab':
+        return <CodeLab onBack={handleBackToDashboard} />;
+      default:
+        return <WelcomeDashboard onSelectMode={handleSelectMode} />;
+    }
+  };
+
+  const showNavigation = activeTab !== 'dashboard' && activeTab !== 'codelab';
+
   return (
     <div className="min-h-screen bg-background">
-      <Navigation 
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        dueCardsCount={dueCardsCount}
-        isDarkMode={isDarkMode}
-        onToggleDarkMode={handleToggleDarkMode}
-      />
+      {showNavigation && (
+        <Navigation 
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          dueCardsCount={dueCardsCount}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={handleToggleDarkMode}
+          onBackToDashboard={handleBackToDashboard}
+        />
+      )}
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className={`${showNavigation ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6' : ''}`}>
         {renderActiveComponent()}
       </main>
     </div>

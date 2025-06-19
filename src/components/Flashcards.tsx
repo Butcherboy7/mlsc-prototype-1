@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StudyMode, Flashcard } from '@/types';
-import { Brain, Plus, RotateCcw, Check, X, Edit, Save, Filter, Calendar } from 'lucide-react';
+import { Brain, Plus, RotateCcw, Check, X, Edit, Save, Filter, Calendar, ArrowLeft } from 'lucide-react';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
 import { storageUtils } from '@/utils/storage';
 
-const Flashcards: React.FC = () => {
+interface FlashcardsProps {
+  onBack: () => void;
+}
+
+const Flashcards: React.FC<FlashcardsProps> = ({ onBack }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isStudying, setIsStudying] = useState(false);
   const [editingCard, setEditingCard] = useState<string | null>(null);
@@ -119,6 +122,19 @@ const Flashcards: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Dashboard
+        </Button>
+        <div className="text-center">
+          <h1 className="text-3xl font-bold">Flashcards</h1>
+          <p className="text-muted-foreground">Spaced repetition learning system</p>
+        </div>
+        <div></div>
+      </div>
+
       {/* Study Session */}
       {isStudying && currentCard && (
         <Card className="mentora-card">
@@ -133,45 +149,54 @@ const Flashcards: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center space-y-4">
-              <div className="min-h-[120px] flex items-center justify-center p-4 bg-muted rounded-lg">
-                <p className="text-lg text-center">{currentCard.question}</p>
+              <div className="min-h-[120px] flex items-center justify-center p-6 bg-muted rounded-lg">
+                <p className="text-lg text-center leading-relaxed">{currentCard.question}</p>
               </div>
 
               {showAnswer ? (
                 <div className="space-y-4">
-                  <div className="min-h-[120px] flex items-center justify-center p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-lg text-center">{currentCard.answer}</p>
+                  <div className="min-h-[120px] flex items-center justify-center p-6 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-lg text-center leading-relaxed">{currentCard.answer}</p>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-2xl mx-auto">
                     <Button
-                      variant="outline"
                       onClick={() => handleCardResponse('hard')}
-                      className="flex-1 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
+                      className="flex-1 bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800 min-h-[60px]"
+                      variant="outline"
                     >
                       <X className="w-4 h-4 mr-2" />
-                      Hard (1 day)
+                      <div className="text-center">
+                        <div className="font-medium">Hard</div>
+                        <div className="text-xs opacity-75">Review in 1 day</div>
+                      </div>
                     </Button>
                     <Button
-                      variant="outline"
                       onClick={() => handleCardResponse('medium')}
-                      className="flex-1 bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+                      className="flex-1 bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 hover:text-yellow-800 min-h-[60px]"
+                      variant="outline"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
-                      Medium (3 days)
+                      <div className="text-center">
+                        <div className="font-medium">Medium</div>
+                        <div className="text-xs opacity-75">Review in 3 days</div>
+                      </div>
                     </Button>
                     <Button
-                      variant="outline"
                       onClick={() => handleCardResponse('easy')}
-                      className="flex-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                      className="flex-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 min-h-[60px]"
+                      variant="outline"
                     >
                       <Check className="w-4 h-4 mr-2" />
-                      Easy (6 days)
+                      <div className="text-center">
+                        <div className="font-medium">Easy</div>
+                        <div className="text-xs opacity-75">Review in 6 days</div>
+                      </div>
                     </Button>
                   </div>
                 </div>
               ) : (
-                <Button onClick={() => setShowAnswer(true)} size="lg">
+                <Button onClick={() => setShowAnswer(true)} size="lg" className="min-h-[50px] px-8">
                   Show Answer
                 </Button>
               )}

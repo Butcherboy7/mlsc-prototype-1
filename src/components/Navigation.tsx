@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MessageCircle, FileText, Brain, Moon, Sun, User } from 'lucide-react';
+import { MessageCircle, FileText, Brain, Moon, Sun, User, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -10,9 +10,17 @@ interface NavigationProps {
   dueCardsCount: number;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
+  onBackToDashboard: () => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCardsCount, isDarkMode, onToggleDarkMode }) => {
+const Navigation: React.FC<NavigationProps> = ({ 
+  activeTab, 
+  onTabChange, 
+  dueCardsCount, 
+  isDarkMode, 
+  onToggleDarkMode,
+  onBackToDashboard 
+}) => {
   const tabs = [
     { id: 'chat', label: 'AI Chat', icon: MessageCircle },
     { id: 'notes', label: 'Notes', icon: FileText },
@@ -26,6 +34,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange, dueCard
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center space-x-2">
+            <Button variant="ghost" onClick={onBackToDashboard} className="p-2">
+              <Home className="w-5 h-5" />
+            </Button>
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <MessageCircle className="w-5 h-5 text-white" />
             </div>
