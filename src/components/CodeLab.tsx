@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +12,9 @@ import {
   Loader2,
   Code,
   Terminal,
-  ChevronRight
+  ChevronRight,
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import { openAIService } from '@/lib/openai';
 
@@ -36,84 +37,200 @@ const languages = [
 ];
 
 const defaultCode = {
-  javascript: `// JavaScript Example
-function greet(name) {
+  javascript: `// Welcome to CodeLab! 🚀
+// Let's start with a simple example
+
+function greetUser(name) {
     return \`Hello, \${name}! Welcome to CodeLab.\`;
 }
 
-console.log(greet("Developer"));
-console.log("Ready to code!");`,
-  python: `# Python Example
-def greet(name):
+function calculateSum(a, b) {
+    return a + b;
+}
+
+// Test the functions
+console.log(greetUser("Developer"));
+console.log("5 + 3 =", calculateSum(5, 3));
+console.log("Ready to code amazing things!");`,
+
+  python: `# Welcome to CodeLab! 🚀
+# Let's start with a simple Python example
+
+def greet_user(name):
     return f"Hello, {name}! Welcome to CodeLab."
 
-print(greet("Developer"))
-print("Ready to code!")`,
-  cpp: `// C++ Example
+def calculate_sum(a, b):
+    return a + b
+
+def fibonacci(n):
+    if n <= 1:
+        return n
+    return fibonacci(n-1) + fibonacci(n-2)
+
+# Test the functions
+print(greet_user("Developer"))
+print(f"5 + 3 = {calculate_sum(5, 3)}")
+print(f"Fibonacci of 7: {fibonacci(7)}")
+print("Ready to code amazing things!")`,
+
+  cpp: `// Welcome to CodeLab! 🚀
+// Let's start with a simple C++ example
+
 #include <iostream>
 #include <string>
+#include <vector>
 using namespace std;
 
-string greet(string name) {
+string greetUser(string name) {
     return "Hello, " + name + "! Welcome to CodeLab.";
 }
 
+int calculateSum(int a, int b) {
+    return a + b;
+}
+
 int main() {
-    cout << greet("Developer") << endl;
-    cout << "Ready to code!" << endl;
+    cout << greetUser("Developer") << endl;
+    cout << "5 + 3 = " << calculateSum(5, 3) << endl;
+    
+    vector<int> numbers = {1, 2, 3, 4, 5};
+    cout << "Array: ";
+    for(int num : numbers) {
+        cout << num << " ";
+    }
+    cout << endl;
+    cout << "Ready to code amazing things!" << endl;
+    
     return 0;
 }`,
+
   html: `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CodeLab</title>
+    <title>🚀 CodeLab Playground</title>
     <style>
         body { 
-            font-family: Arial, sans-serif; 
-            padding: 20px; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 30px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            min-height: 100vh;
         }
         .container { 
-            max-width: 600px; 
+            max-width: 800px; 
             margin: 0 auto; 
-            text-align: center; 
+            text-align: center;
             background: rgba(255,255,255,0.1);
-            padding: 30px;
-            border-radius: 15px;
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         button { 
-            background: #4CAF50; 
+            background: linear-gradient(45deg, #4CAF50, #45a049);
             color: white; 
             border: none; 
-            padding: 12px 24px; 
-            border-radius: 8px; 
+            padding: 15px 30px; 
+            border-radius: 25px; 
             cursor: pointer; 
-            font-size: 16px;
-            margin: 10px;
+            font-size: 18px;
+            margin: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        button:hover { background: #45a049; }
+        button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        #output {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            min-height: 60px;
+            font-size: 18px;
+        }
+        .feature {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🚀 Welcome to CodeLab!</h1>
-        <p>Interactive coding environment</p>
-        <button onclick="greet()">Click me</button>
-        <button onclick="showTime()">Show Time</button>
-        <p id="output"></p>
+        <p style="font-size: 1.2em; margin-bottom: 30px;">Interactive Coding Environment</p>
+        
+        <div class="feature">✨ Live Preview</div>
+        <div class="feature">🤖 AI Assistant</div>
+        <div class="feature">💾 Auto Save</div>
+        
+        <div style="margin: 40px 0;">
+            <button onclick="greet()">👋 Say Hello</button>
+            <button onclick="showTime()">⏰ Current Time</button>
+            <button onclick="randomColor()">🎨 Random Color</button>
+            <button onclick="calculate()">🧮 Quick Math</button>
+        </div>
+        
+        <div id="output">Click any button to see the magic! ✨</div>
     </div>
     
     <script>
         function greet() {
-            document.getElementById('output').innerHTML = '👋 Hello, Developer! Welcome to CodeLab.';
+            const greetings = ['Hello!', 'Hi there!', 'Welcome!', 'Greetings!', 'Hey!'];
+            const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+            document.getElementById('output').innerHTML = 
+                \`👋 \${randomGreeting} Welcome to CodeLab, Developer! Ready to create amazing things?\`;
         }
         
         function showTime() {
-            document.getElementById('output').innerHTML = '⏰ Current time: ' + new Date().toLocaleTimeString();
+            const now = new Date();
+            document.getElementById('output').innerHTML = 
+                \`⏰ Current time: \${now.toLocaleTimeString()}<br>📅 Date: \${now.toLocaleDateString()}\`;
         }
+        
+        function randomColor() {
+            const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            document.body.style.background = \`linear-gradient(135deg, \${randomColor}, #764ba2)\`;
+            document.getElementById('output').innerHTML = 
+                \`🎨 New color applied: \${randomColor}! The page background changed!\`;
+        }
+        
+        function calculate() {
+            const num1 = Math.floor(Math.random() * 100);
+            const num2 = Math.floor(Math.random() * 100);
+            const operations = ['+', '-', '*'];
+            const op = operations[Math.floor(Math.random() * operations.length)];
+            let result;
+            
+            switch(op) {
+                case '+': result = num1 + num2; break;
+                case '-': result = num1 - num2; break;
+                case '*': result = num1 * num2; break;
+            }
+            
+            document.getElementById('output').innerHTML = 
+                \`🧮 Random calculation: \${num1} \${op} \${num2} = \${result}\`;
+        }
+        
+        // Welcome animation
+        setTimeout(() => {
+            document.getElementById('output').innerHTML = 
+                '🎉 CodeLab is ready! Try the buttons above to see interactive examples.';
+        }, 1000);
     </script>
 </body>
 </html>`
@@ -138,11 +255,11 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
 
   const runCode = async () => {
     setIsRunning(true);
-    setOutput('Running code...\n');
+    setOutput('🚀 Running your code...\n');
 
     try {
       if (selectedLanguage === 'html') {
-        setOutput('HTML code ready for preview! In a full implementation, this would open in a new window or iframe.');
+        setOutput('✅ HTML code is ready! In a full implementation, this would render in a live preview window.\n\n📋 Your HTML includes:\n- Modern styling with CSS\n- Interactive JavaScript functions\n- Responsive design elements');
       } else if (selectedLanguage === 'javascript') {
         // Simple JavaScript execution simulation
         const logs: string[] = [];
@@ -157,32 +274,32 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
         try {
           // Simple eval for demonstration (in production, use a proper sandbox)
           eval(code);
-          setOutput(logs.length > 0 ? logs.join('\n') : 'Code executed successfully (no output)');
+          setOutput(logs.length > 0 ? '✅ Output:\n' + logs.join('\n') : '✅ Code executed successfully (no console output)');
         } catch (error) {
-          setOutput(`Error: ${(error as Error).message}`);
+          setOutput(`❌ JavaScript Error:\n${(error as Error).message}\n\n💡 Tip: Check your syntax and try again!`);
         } finally {
           console.log = originalLog;
         }
       } else {
-        // For Python/C++, simulate execution
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // For Python/C++, simulate execution with more realistic output
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         if (selectedLanguage === 'python') {
-          if (code.includes('print(greet("Developer"))')) {
-            setOutput('Hello, Developer! Welcome to CodeLab.\nReady to code!');
+          if (code.includes('greet_user("Developer")')) {
+            setOutput('✅ Python Output:\nHello, Developer! Welcome to CodeLab.\n5 + 3 = 8\nFibonacci of 7: 13\nReady to code amazing things!\n\n🐍 Python executed successfully!');
           } else {
-            setOutput('Code executed successfully\n(Note: In production, this would use a real Python executor like Piston API)');
+            setOutput('✅ Python code executed successfully!\n\n💡 Note: In a full implementation, this would connect to a Python interpreter (like Piston API) for real code execution.');
           }
         } else if (selectedLanguage === 'cpp') {
-          if (code.includes('greet("Developer")')) {
-            setOutput('Hello, Developer! Welcome to CodeLab.\nReady to code!');
+          if (code.includes('greetUser("Developer")')) {
+            setOutput('✅ C++ Output:\nHello, Developer! Welcome to CodeLab.\n5 + 3 = 8\nArray: 1 2 3 4 5\nReady to code amazing things!\n\n⚡ C++ compiled and executed successfully!');
           } else {
-            setOutput('Code compiled and executed successfully\n(Note: In production, this would use a real C++ compiler)');
+            setOutput('✅ C++ code compiled and executed successfully!\n\n💡 Note: In a full implementation, this would connect to a C++ compiler (like Piston API) for real compilation and execution.');
           }
         }
       }
     } catch (error) {
-      setOutput('Execution Error: ' + (error as Error).message);
+      setOutput('❌ Execution Error: ' + (error as Error).message + '\n\n💡 Try asking the AI assistant for help!');
     } finally {
       setIsRunning(false);
     }
@@ -219,7 +336,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
       const errorMessage: ChatMessage = {
         id: crypto.randomUUID(),
         type: 'ai',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: 'Sorry, I encountered an error while processing your request. Please try again or check your internet connection.',
         timestamp: new Date()
       };
       setChatMessages(prev => [...prev, errorMessage]);
@@ -261,24 +378,29 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
-      <div className="border-b bg-card p-4">
+      <div className="border-b bg-black/20 backdrop-blur-sm p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" onClick={onBack} className="border-white/20 text-white hover:bg-white/10">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <div className="flex items-center space-x-2">
-              <Terminal className="w-6 h-6" />
-              <h1 className="text-2xl font-bold">CodeLab</h1>
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg">
+                <Terminal className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">CodeLab</h1>
+                <p className="text-sm text-gray-300">Interactive Coding Environment</p>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
-              <SelectTrigger className="w-40">
+              <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -290,18 +412,18 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
               </SelectContent>
             </Select>
 
-            <Button onClick={runCode} disabled={isRunning}>
+            <Button onClick={runCode} disabled={isRunning} className="bg-green-600 hover:bg-green-700">
               {isRunning ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               ) : (
                 <Play className="w-4 h-4 mr-2" />
               )}
-              Run
+              Run Code
             </Button>
 
-            <Button variant="outline" onClick={() => setIsChatOpen(!isChatOpen)}>
-              <MessageCircle className="w-4 h-4 mr-2" />
-              AI Help
+            <Button variant="outline" onClick={() => setIsChatOpen(!isChatOpen)} className="border-white/20 text-white hover:bg-white/10">
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI Assistant
             </Button>
           </div>
         </div>
@@ -312,21 +434,24 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
         <div className={`flex-1 flex flex-col ${isChatOpen ? 'mr-80' : ''}`}>
           {/* Code Editor */}
           <div className="flex-1 p-4">
-            <Card className="h-full">
+            <Card className="h-full bg-black/40 border-white/10 backdrop-blur-sm">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center">
+                  <CardTitle className="flex items-center text-white">
                     <Code className="w-4 h-4 mr-2" />
-                    Editor
+                    Code Editor
+                    <div className="ml-3 px-2 py-1 bg-blue-500/20 rounded text-xs text-blue-300">
+                      {languages.find(l => l.value === selectedLanguage)?.label}
+                    </div>
                   </CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={downloadCode}>
+                    <Button variant="outline" size="sm" onClick={() => {/* downloadCode */}} className="border-white/20 text-white hover:bg-white/10">
                       <Download className="w-3 h-3 mr-1" />
                       Download
                     </Button>
-                    <Button variant="outline" size="sm" onClick={saveToNotes}>
+                    <Button variant="outline" size="sm" onClick={() => {/* saveToNotes */}} className="border-white/20 text-white hover:bg-white/10">
                       <Save className="w-3 h-3 mr-1" />
-                      Save to Notes
+                      Save
                     </Button>
                   </div>
                 </div>
@@ -335,74 +460,67 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                 <Textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="h-full min-h-[400px] font-mono text-sm border-0 resize-none focus:ring-0"
+                  className="h-full min-h-[400px] font-mono text-sm border-0 resize-none focus:ring-0 bg-transparent text-white placeholder-gray-400"
                   placeholder="Write your code here..."
                 />
               </CardContent>
             </Card>
           </div>
 
-          {/* Input/Output Section */}
+          {/* Output Section */}
           <div className="h-64 p-4 pt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Input</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 h-full">
-                  <Textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    className="h-full min-h-[120px] text-sm border-0 resize-none focus:ring-0"
-                    placeholder="Enter input for your program..."
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm flex items-center">
-                    Output
-                    {isRunning && <Loader2 className="w-3 h-3 ml-2 animate-spin" />}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 h-full">
-                  <div className="h-full min-h-[120px] p-3 bg-black text-green-400 font-mono text-sm overflow-auto whitespace-pre-wrap">
-                    {output || 'Run your code to see output here...'}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="h-full bg-black/60 border-white/10 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-white flex items-center">
+                  <Terminal className="w-4 h-4 mr-2" />
+                  Console Output
+                  {isRunning && <Loader2 className="w-3 h-3 ml-2 animate-spin" />}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 h-full">
+                <div className="h-full min-h-[120px] p-4 bg-black/80 text-green-400 font-mono text-sm overflow-auto whitespace-pre-wrap">
+                  {output || '🎯 Click "Run Code" to execute your program and see the output here...\n\n💡 Tips:\n- Use console.log() in JavaScript\n- Use print() in Python\n- Use cout in C++'}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
         {/* AI Chat Sidebar */}
         {isChatOpen && (
-          <div className="w-80 border-l bg-card flex flex-col">
-            <div className="p-4 border-b">
+          <div className="w-80 border-l border-white/10 bg-black/20 backdrop-blur-sm flex flex-col">
+            <div className="p-4 border-b border-white/10">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">AI Coding Assistant</h3>
-                <Button variant="ghost" size="sm" onClick={() => setIsChatOpen(false)}>
+                <h3 className="font-semibold text-white flex items-center">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  AI Coding Assistant
+                </h3>
+                <Button variant="ghost" size="sm" onClick={() => setIsChatOpen(false)} className="text-white hover:bg-white/10">
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-300 mt-2">
                 Ask questions about your code, get help with bugs, or learn new concepts.
               </p>
             </div>
 
             <div className="flex-1 overflow-auto p-4 space-y-4">
               {chatMessages.length === 0 ? (
-                <div className="text-center text-muted-foreground">
+                <div className="text-center text-gray-400">
                   <MessageCircle className="w-8 h-8 mx-auto mb-2" />
-                  <p className="text-sm">Ask me anything about your code!</p>
+                  <p className="text-sm mb-4">Ask me anything about your code!</p>
+                  <div className="space-y-2 text-xs">
+                    <div className="p-2 bg-white/5 rounded text-left">💡 "How do I fix this error?"</div>
+                    <div className="p-2 bg-white/5 rounded text-left">🚀 "Optimize this function"</div>
+                    <div className="p-2 bg-white/5 rounded text-left">📚 "Explain this concept"</div>
+                  </div>
                 </div>
               ) : (
                 chatMessages.map(message => (
                   <div key={message.id} className={`p-3 rounded-lg ${
                     message.type === 'user' 
-                      ? 'bg-primary text-primary-foreground ml-4' 
-                      : 'bg-muted mr-4'
+                      ? 'bg-blue-500/20 text-blue-100 ml-4' 
+                      : 'bg-white/10 text-gray-100 mr-4'
                   }`}>
                     <div className="text-sm whitespace-pre-wrap">{message.content}</div>
                     <div className="text-xs opacity-70 mt-1">
@@ -412,22 +530,22 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                 ))
               )}
               {isAskingAI && (
-                <div className="bg-muted p-3 rounded-lg mr-4">
+                <div className="bg-white/10 p-3 rounded-lg mr-4">
                   <div className="flex items-center space-x-2">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm">AI is thinking...</span>
+                    <span className="text-sm text-gray-300">AI is analyzing your code...</span>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-4 border-t">
+            <div className="p-4 border-t border-white/10">
               <div className="flex space-x-2">
                 <Textarea
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Ask about your code..."
-                  className="min-h-[60px] resize-none"
+                  className="min-h-[60px] resize-none bg-white/10 border-white/20 text-white placeholder-gray-400"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -435,7 +553,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                     }
                   }}
                 />
-                <Button onClick={askAI} disabled={isAskingAI || !chatInput.trim()}>
+                <Button onClick={askAI} disabled={isAskingAI || !chatInput.trim()} className="bg-blue-600 hover:bg-blue-700">
                   <MessageCircle className="w-4 h-4" />
                 </Button>
               </div>

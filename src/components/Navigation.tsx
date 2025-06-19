@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MessageCircle, FileText, Brain, Moon, Sun, User, Home } from 'lucide-react';
+import { MessageCircle, FileText, Brain, Moon, Sun, User, Home, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -24,6 +24,7 @@ const Navigation: React.FC<NavigationProps> = ({
   const tabs = [
     { id: 'chat', label: 'AI Chat', icon: MessageCircle },
     { id: 'notes', label: 'Notes', icon: FileText },
+    { id: 'pdf', label: 'PDF Summarizer', icon: Upload },
     { id: 'flashcards', label: 'Flashcards', icon: Brain, badge: dueCardsCount > 0 ? dueCardsCount : undefined },
     { id: 'career', label: 'Career Guide', icon: User }
   ];

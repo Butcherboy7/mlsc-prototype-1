@@ -10,8 +10,8 @@ import {
   FileText,
   Brain,
   User,
-  Terminal,
-  Upload
+  Upload,
+  Sparkles
 } from 'lucide-react';
 
 interface WelcomeDashboardProps {
@@ -23,114 +23,145 @@ const modes = [
     id: 'maths', 
     title: 'Maths Tutor', 
     icon: Calculator,
-    description: 'Get help with mathematics problems',
-    color: 'from-blue-500 to-cyan-500'
+    description: 'Solve problems & learn concepts',
+    color: 'from-blue-500 to-cyan-500',
+    accent: 'bg-blue-100 text-blue-700'
   },
   { 
     id: 'coding', 
     title: 'Code Mentor', 
     icon: Code,
-    description: 'Programming guidance and debugging',
-    color: 'from-green-500 to-emerald-500'
+    description: 'Debug, learn & improve code',
+    color: 'from-green-500 to-emerald-500',
+    accent: 'bg-green-100 text-green-700'
   },
   { 
     id: 'business', 
     title: 'Business Coach', 
     icon: Briefcase,
-    description: 'Startup and business strategy',
-    color: 'from-purple-500 to-violet-500'
+    description: 'Strategy & startup guidance',
+    color: 'from-purple-500 to-violet-500',
+    accent: 'bg-purple-100 text-purple-700'
   },
   { 
     id: 'legal', 
     title: 'Legal Advisor', 
     icon: Scale,
-    description: 'Legal concepts and case analysis',
-    color: 'from-red-500 to-pink-500'
+    description: 'Legal concepts & analysis',
+    color: 'from-red-500 to-pink-500',
+    accent: 'bg-red-100 text-red-700'
   },
   { 
     id: 'literature', 
     title: 'Literature Guide', 
     icon: BookText,
-    description: 'Literary analysis and writing',
-    color: 'from-amber-500 to-orange-500'
-  },
-  { 
-    id: 'pdf', 
-    title: 'PDF Summarizer', 
-    icon: Upload,
-    description: 'Summarize any PDF document',
-    color: 'from-indigo-500 to-purple-500'
-  },
-  { 
-    id: 'codelab', 
-    title: 'CodeLab', 
-    icon: Terminal,
-    description: 'Interactive coding playground',
-    color: 'from-slate-500 to-gray-600'
-  },
-  { 
-    id: 'notes', 
-    title: 'Notes', 
-    icon: FileText,
-    description: 'Create and manage study notes',
-    color: 'from-teal-500 to-cyan-500'
-  },
-  { 
-    id: 'flashcards', 
-    title: 'Flashcards', 
-    icon: Brain,
-    description: 'Spaced repetition learning',
-    color: 'from-rose-500 to-pink-500'
-  },
-  { 
-    id: 'career', 
-    title: 'Career Test', 
-    icon: User,
-    description: 'MBTI personality assessment',
-    color: 'from-emerald-500 to-green-500'
+    description: 'Writing & literary analysis',
+    color: 'from-amber-500 to-orange-500',
+    accent: 'bg-amber-100 text-amber-700'
   }
 ];
 
 const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({ onSelectMode }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="max-w-6xl w-full space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="container mx-auto px-4 py-12">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 bg-clip-text text-transparent">
-            Welcome to Mentora
+        <div className="text-center mb-16 animate-fade-in">
+          <div className="flex items-center justify-center mb-6">
+            <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl">
+              <Brain className="w-12 h-12 text-white" />
+            </div>
+          </div>
+          <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+            Mentora
           </h1>
-          <p className="text-xl text-gray-600 font-medium">
-            Choose Your AI Mode
+          <p className="text-2xl text-gray-600 font-light mb-4">
+            Your AI Study Companion
           </p>
+          <div className="flex items-center justify-center text-lg text-gray-500">
+            <Sparkles className="w-5 h-5 mr-2" />
+            Choose your AI mode to get started
+          </div>
         </div>
 
-        {/* Grid of modes */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {modes.map(mode => {
-            const Icon = mode.icon;
-            return (
-              <Card 
-                key={mode.id} 
-                className="cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105 border-0 shadow-lg group"
-                onClick={() => onSelectMode(mode.id)}
-              >
-                <CardContent className="p-6 text-center space-y-4">
-                  <div className={`w-16 h-16 mx-auto rounded-2xl bg-gradient-to-r ${mode.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                    <Icon className="w-8 h-8 text-white" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-gray-800 text-sm">
-                      {mode.title}
-                    </h3>
-                    <p className="text-xs text-gray-500 leading-tight">
-                      {mode.description}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        {/* AI Modes Grid */}
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {modes.map((mode, index) => {
+              const Icon = mode.icon;
+              return (
+                <Card 
+                  key={mode.id}
+                  className="group cursor-pointer hover:shadow-2xl transition-all duration-500 hover:scale-105 border-0 shadow-lg bg-white/80 backdrop-blur-sm overflow-hidden animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                  onClick={() => onSelectMode(mode.id)}
+                >
+                  <CardContent className="p-8 text-center space-y-6 relative">
+                    {/* Background decoration */}
+                    <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
+                      <div className={`w-full h-full bg-gradient-to-br ${mode.color} rounded-full transform translate-x-12 -translate-y-12`}></div>
+                    </div>
+                    
+                    {/* Icon */}
+                    <div className={`w-20 h-20 mx-auto rounded-3xl bg-gradient-to-r ${mode.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-xl`}>
+                      <Icon className="w-10 h-10 text-white" />
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="space-y-3">
+                      <h3 className="font-bold text-xl text-gray-800 group-hover:text-gray-900 transition-colors">
+                        {mode.title}
+                      </h3>
+                      <p className="text-gray-600 leading-relaxed">
+                        {mode.description}
+                      </p>
+                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${mode.accent}`}>
+                        AI Powered
+                      </div>
+                    </div>
+
+                    {/* Hover effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Additional Tools */}
+        <div className="max-w-4xl mx-auto mt-16">
+          <h2 className="text-3xl font-bold text-center text-gray-800 mb-12">
+            Study Tools & Features
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { id: 'pdf', title: 'PDF Summarizer', icon: Upload, desc: 'Smart document analysis' },
+              { id: 'codelab', title: 'CodeLab', icon: Code, desc: 'Interactive coding' },
+              { id: 'notes', title: 'Smart Notes', icon: FileText, desc: 'AI-generated notes' },
+              { id: 'career', title: 'Career Test', icon: User, desc: 'Personality assessment' }
+            ].map((tool, index) => {
+              const Icon = tool.icon;
+              return (
+                <Card 
+                  key={tool.id}
+                  className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-105 border border-gray-200 bg-white/60 backdrop-blur-sm"
+                  style={{ animationDelay: `${(index + 5) * 0.1}s` }}
+                  onClick={() => onSelectMode(tool.id)}
+                >
+                  <CardContent className="p-6 text-center space-y-4">
+                    <div className="w-12 h-12 mx-auto bg-gradient-to-r from-gray-500 to-gray-600 rounded-xl flex items-center justify-center">
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800 mb-1">{tool.title}</h4>
+                      <p className="text-sm text-gray-600">{tool.desc}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

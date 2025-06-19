@@ -8,12 +8,14 @@ import CareerGuide from '@/components/CareerGuide';
 import WelcomeDashboard from '@/components/WelcomeDashboard';
 import PDFSummarizer from '@/components/PDFSummarizer';
 import CodeLab from '@/components/CodeLab';
+import LoadingScreen from '@/components/LoadingScreen';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { getDueCards } = useSpacedRepetition();
   const dueCardsCount = getDueCards().length;
@@ -31,7 +33,7 @@ const Index = () => {
   };
 
   const handleSelectMode = (mode: string) => {
-    if (['maths', 'coding', 'business', 'legal', 'literature', 'codelab'].includes(mode)) {
+    if (['maths', 'coding', 'business', 'legal', 'literature'].includes(mode)) {
       setSelectedMode(mode);
       setActiveTab('chat');
     } else {
@@ -43,6 +45,10 @@ const Index = () => {
   const handleBackToDashboard = () => {
     setActiveTab('dashboard');
     setSelectedMode(null);
+  };
+
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
   };
 
   const renderActiveComponent = () => {
@@ -67,6 +73,10 @@ const Index = () => {
   };
 
   const showNavigation = activeTab !== 'dashboard' && activeTab !== 'codelab';
+
+  if (isLoading) {
+    return <LoadingScreen onLoadingComplete={handleLoadingComplete} />;
+  }
 
   return (
     <div className="min-h-screen bg-background">
