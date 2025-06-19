@@ -14,14 +14,20 @@ export interface OpenAIResponse {
 
 class OpenAIService {
   private apiKey: string = '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';
+  private baseUrl: string = 'https://openrouter.ai/api/v1';
 
-  async chat(messages: OpenAIMessage[], model: string = 'gpt-3.5-turbo'): Promise<string> {
+  async chat(messages: OpenAIMessage[], model: string = 'openai/gpt-3.5-turbo'): Promise<string> {
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      console.log('Making API call to:', this.baseUrl);
+      console.log('Using model:', model);
+      
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Mentora App',
         },
         body: JSON.stringify({
           model,
@@ -31,11 +37,17 @@ class OpenAIService {
         }),
       });
 
+      console.log('API Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
       }
 
       const data: OpenAIResponse = await response.json();
+      console.log('API Response data:', data);
+      
       return data.choices[0]?.message?.content || 'No response generated';
     } catch (error) {
       console.error('OpenAI API error:', error);
