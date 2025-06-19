@@ -13,9 +13,9 @@ export interface OpenAIResponse {
 }
 
 class OpenAIService {
-  private apiKey: string = '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';
+  private apiKey: string = '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';
 
-  async chat(messages: OpenAIMessage[], model: string = 'gpt-4'): Promise<string> {
+  async chat(messages: OpenAIMessage[], model: string = 'gpt-3.5-turbo'): Promise<string> {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -45,8 +45,8 @@ class OpenAIService {
 
   async summarizePDF(content: string, type: 'short' | 'detailed'): Promise<string> {
     const prompt = type === 'short' 
-      ? 'Provide a concise summary in 200 words or less with key bullet points:'
-      : 'Provide a detailed, comprehensive summary with paragraph-by-paragraph analysis:';
+      ? 'Provide a concise summary in 1-2 paragraphs with key points:'
+      : 'Provide a detailed, comprehensive summary with section-wise breakdown:';
 
     return this.chat([
       { role: 'system', content: 'You are a helpful assistant that creates accurate summaries based on the provided content.' },
@@ -71,6 +71,15 @@ class OpenAIService {
       { role: 'system', content: `You are an expert ${language} programming assistant. Help analyze code, fix bugs, suggest improvements, and answer coding questions.` },
       { role: 'user', content: `Language: ${language}\n\nCode:\n${code}\n\nQuestion: ${question}` }
     ]);
+  }
+
+  // Legacy methods for compatibility (will be removed after refactoring)
+  getApiKey(): string {
+    return this.apiKey;
+  }
+
+  setApiKey(key: string): void {
+    this.apiKey = key;
   }
 }
 

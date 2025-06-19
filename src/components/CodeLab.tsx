@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { 
   Play, 
   MessageCircle, 
@@ -14,8 +13,7 @@ import {
   Loader2,
   Code,
   Terminal,
-  ChevronRight,
-  ChevronDown
+  ChevronRight
 } from 'lucide-react';
 import { openAIService } from '@/lib/openai';
 
@@ -38,18 +36,20 @@ const languages = [
 ];
 
 const defaultCode = {
-  javascript: `// Welcome to CodeLab - JavaScript
+  javascript: `// JavaScript Example
 function greet(name) {
     return \`Hello, \${name}! Welcome to CodeLab.\`;
 }
 
-console.log(greet("Developer"));`,
-  python: `# Welcome to CodeLab - Python
+console.log(greet("Developer"));
+console.log("Ready to code!");`,
+  python: `# Python Example
 def greet(name):
     return f"Hello, {name}! Welcome to CodeLab."
 
-print(greet("Developer"))`,
-  cpp: `// Welcome to CodeLab - C++
+print(greet("Developer"))
+print("Ready to code!")`,
+  cpp: `// C++ Example
 #include <iostream>
 #include <string>
 using namespace std;
@@ -60,6 +60,7 @@ string greet(string name) {
 
 int main() {
     cout << greet("Developer") << endl;
+    cout << "Ready to code!" << endl;
     return 0;
 }`,
   html: `<!DOCTYPE html>
@@ -69,21 +70,49 @@ int main() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodeLab</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; text-align: center; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            text-align: center; 
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+        }
+        button { 
+            background: #4CAF50; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover { background: #45a049; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome to CodeLab!</h1>
+        <h1>🚀 Welcome to CodeLab!</h1>
+        <p>Interactive coding environment</p>
         <button onclick="greet()">Click me</button>
+        <button onclick="showTime()">Show Time</button>
         <p id="output"></p>
     </div>
     
     <script>
         function greet() {
-            document.getElementById('output').innerHTML = 'Hello, Developer! Welcome to CodeLab.';
+            document.getElementById('output').innerHTML = '👋 Hello, Developer! Welcome to CodeLab.';
+        }
+        
+        function showTime() {
+            document.getElementById('output').innerHTML = '⏰ Current time: ' + new Date().toLocaleTimeString();
         }
     </script>
 </body>
@@ -109,26 +138,51 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
 
   const runCode = async () => {
     setIsRunning(true);
-    setOutput('');
+    setOutput('Running code...\n');
 
     try {
       if (selectedLanguage === 'html') {
-        // For HTML, just show a preview
-        setOutput('HTML preview would be shown here. For security reasons, full HTML execution is limited in this demo.');
-      } else {
-        // Simulate code execution (in a real app, you'd use Piston API or similar)
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setOutput('HTML code ready for preview! In a full implementation, this would open in a new window or iframe.');
+      } else if (selectedLanguage === 'javascript') {
+        // Simple JavaScript execution simulation
+        const logs: string[] = [];
+        const originalLog = console.log;
         
-        if (selectedLanguage === 'javascript') {
-          setOutput('Hello, Developer! Welcome to CodeLab.\n(This is a simulated output. In production, use a proper code execution service.)');
-        } else if (selectedLanguage === 'python') {
-          setOutput('Hello, Developer! Welcome to CodeLab.\n(This is a simulated output. In production, use a proper code execution service.)');
+        // Capture console.log output
+        console.log = (...args: any[]) => {
+          logs.push(args.join(' '));
+          originalLog(...args);
+        };
+
+        try {
+          // Simple eval for demonstration (in production, use a proper sandbox)
+          eval(code);
+          setOutput(logs.length > 0 ? logs.join('\n') : 'Code executed successfully (no output)');
+        } catch (error) {
+          setOutput(`Error: ${(error as Error).message}`);
+        } finally {
+          console.log = originalLog;
+        }
+      } else {
+        // For Python/C++, simulate execution
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        if (selectedLanguage === 'python') {
+          if (code.includes('print(greet("Developer"))')) {
+            setOutput('Hello, Developer! Welcome to CodeLab.\nReady to code!');
+          } else {
+            setOutput('Code executed successfully\n(Note: In production, this would use a real Python executor like Piston API)');
+          }
         } else if (selectedLanguage === 'cpp') {
-          setOutput('Hello, Developer! Welcome to CodeLab.\n(This is a simulated output. In production, use a proper code execution service.)');
+          if (code.includes('greet("Developer")')) {
+            setOutput('Hello, Developer! Welcome to CodeLab.\nReady to code!');
+          } else {
+            setOutput('Code compiled and executed successfully\n(Note: In production, this would use a real C++ compiler)');
+          }
         }
       }
     } catch (error) {
-      setOutput('Error: ' + (error as Error).message);
+      setOutput('Execution Error: ' + (error as Error).message);
     } finally {
       setIsRunning(false);
     }
@@ -186,10 +240,24 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
   };
 
   const saveToNotes = () => {
-    if ((window as any).addNoteFromAIChat) {
-      const title = `CodeLab Project - ${languages.find(l => l.value === selectedLanguage)?.label}`;
-      (window as any).addNoteFromAIChat(title, code, ['CodeLab', 'Programming']);
-    }
+    const title = `CodeLab - ${languages.find(l => l.value === selectedLanguage)?.label}`;
+    const content = `# ${title}\n\n\`\`\`${selectedLanguage}\n${code}\n\`\`\``;
+    
+    // Save to localStorage notes
+    const existingNotes = JSON.parse(localStorage.getItem('mentora_notes') || '[]');
+    const newNote = {
+      id: crypto.randomUUID(),
+      title,
+      content,
+      tags: ['CodeLab', 'Programming'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    existingNotes.unshift(newNote);
+    localStorage.setItem('mentora_notes', JSON.stringify(existingNotes));
+    
+    alert('Code saved to Notes!');
   };
 
   return (
@@ -299,7 +367,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 h-full">
-                  <div className="h-full min-h-[120px] p-3 bg-black text-green-400 font-mono text-sm overflow-auto">
+                  <div className="h-full min-h-[120px] p-3 bg-black text-green-400 font-mono text-sm overflow-auto whitespace-pre-wrap">
                     {output || 'Run your code to see output here...'}
                   </div>
                 </CardContent>

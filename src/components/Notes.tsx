@@ -4,95 +4,139 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { StudyNote } from '@/types';
-import { FileText, Plus, Search, Tag, Sparkles, Download, ArrowLeft } from 'lucide-react';
-import { storageUtils } from '@/utils/storage';
+import { 
+  Plus, 
+  Search, 
+  FileText, 
+  Edit, 
+  Trash2, 
+  Download, 
+  Save,
+  ArrowLeft,
+  Sparkles
+} from 'lucide-react';
 import { openAIService } from '@/lib/openai';
 import { exportToPDF } from '@/lib/pdf';
+
+interface Note {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface NotesProps {
   onBack: () => void;
 }
 
 const Notes: React.FC<NotesProps> = ({ onBack }) => {
-  const [notes, setNotes] = useState<StudyNote[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [notes, setNotes] = useState<Note[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editContent, setEditContent] = useState('');
+  const [editTags, setEditTags] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
   const [generateTopic, setGenerateTopic] = useState('');
-  const [newNote, setNewNote] = useState({
-    title: '',
-    content: '',
-    tags: [] as string[],
-    tagInput: ''
-  });
 
   useEffect(() => {
-    const loadedNotes = storageUtils.loadNotes();
-    setNotes(loadedNotes);
+    loadNotes();
   }, []);
 
-  useEffect(() => {
-    storageUtils.saveNotes(notes);
-  }, [notes]);
-
-  const handleCreateNote = () => {
-    if (!newNote.title || !newNote.content) return;
-
-    const note: StudyNote = {
-      id: crypto.randomUUID(),
-      title: newNote.title,
-      content: newNote.content,
-      summary: newNote.content.slice(0, 100) + (newNote.content.length > 100 ? '...' : ''),
-      mode: 'maths',
-      tags: newNote.tags,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    setNotes(prev => [...prev, note]);
-    setNewNote({ title: '', content: '', tags: [], tagInput: '' });
-    setIsCreating(false);
+  const loadNotes = () => {
+    const savedNotes = localStorage.getItem('mentora_notes');
+    if (savedNotes) {
+      setNotes(JSON.parse(savedNotes));
+    }
   };
 
-  const handleGenerateNote = async () => {
-    if (!generateTopic.trim() || !openAIService.getApiKey()) return;
+  const saveNotes = (updatedNotes: Note[]) => {
+    localStorage.setItem('mentora_notes', JSON.stringify(updatedNotes));
+    setNotes(updatedNotes);
+  };
+
+  const createNewNote = () => {
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      title: 'New Note',
+      content: '',
+      tags: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    const updatedNotes = [newNote, ...notes];
+    saveNotes(updatedNotes);
+    setSelectedNote(newNote);
+    setIsEditing(true);
+    setEditTitle(newNote.title);
+    setEditContent(newNote.content);
+    setEditTags('');
+  };
+
+  const generateAINote = async () => {
+    if (!generateTopic.trim()) return;
 
     setIsGenerating(true);
     try {
-      const { title, content } = await openAIService.generateNote(generateTopic);
-      setNewNote({ title, content, tags: ['AI Generated'], tagInput: '' });
+      const result = await openAIService.generateNote(generateTopic);
+      
+      const newNote: Note = {
+        id: crypto.randomUUID(),
+        title: result.title,
+        content: result.content,
+        tags: ['AI Generated'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      const updatedNotes = [newNote, ...notes];
+      saveNotes(updatedNotes);
+      setSelectedNote(newNote);
       setGenerateTopic('');
-      setIsCreating(true);
     } catch (error) {
       console.error('Error generating note:', error);
+      alert('Failed to generate note. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleAddTag = () => {
-    if (newNote.tagInput.trim() && !newNote.tags.includes(newNote.tagInput.trim())) {
-      setNewNote(prev => ({
-        ...prev,
-        tags: [...prev.tags, prev.tagInput.trim()],
-        tagInput: ''
-      }));
-    }
-  };
+  const saveNote = () => {
+    if (!selectedNote) return;
 
-  const removeTag = (tagToRemove: string) => {
-    setNewNote(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
+    const updatedNote: Note = {
+      ...selectedNote,
+      title: editTitle,
+      content: editContent,
+      tags: editTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
+      updatedAt: new Date().toISOString()
+    };
+
+    const updatedNotes = notes.map(note => 
+      note.id === selectedNote.id ? updatedNote : note
+    );
+
+    saveNotes(updatedNotes);
+    setSelectedNote(updatedNote);
+    setIsEditing(false);
   };
 
   const deleteNote = (noteId: string) => {
-    setNotes(prev => prev.filter(note => note.id !== noteId));
+    if (confirm('Are you sure you want to delete this note?')) {
+      const updatedNotes = notes.filter(note => note.id !== noteId);
+      saveNotes(updatedNotes);
+      if (selectedNote?.id === noteId) {
+        setSelectedNote(null);
+        setIsEditing(false);
+      }
+    }
   };
 
-  const exportNote = (note: StudyNote) => {
+  const exportNoteToPDF = (note: Note) => {
     exportToPDF(note.content, `${note.title}.pdf`);
   };
 
@@ -102,148 +146,27 @@ const Notes: React.FC<NotesProps> = ({ onBack }) => {
     note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const addNoteFromExternal = (title: string, content: string, tags: string[] = []) => {
-    const note: StudyNote = {
-      id: crypto.randomUUID(),
-      title,
-      content,
-      summary: content.slice(0, 100) + (content.length > 100 ? '...' : ''),
-      mode: 'maths',
-      tags,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    setNotes(prev => [...prev, note]);
-  };
-
-  React.useEffect(() => {
-    (window as any).addNoteFromAIChat = addNoteFromExternal;
-  }, []);
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Smart Notes</h1>
-          <p className="text-muted-foreground">Create and generate AI-powered notes</p>
-        </div>
-        <div></div>
-      </div>
-
-      {/* AI Generate Section */}
-      {!isCreating && (
+    <div className="max-w-7xl mx-auto flex h-[calc(100vh-100px)] gap-6">
+      {/* Notes List */}
+      <div className="w-1/3 space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Sparkles className="w-5 h-5 mr-2" />
-              Generate Note with AI
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center">
+                <FileText className="w-5 h-5 mr-2" />
+                Notes
+              </CardTitle>
+              <Button variant="outline" size="sm" onClick={onBack}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter a topic (e.g., 'Photosynthesis', 'React Hooks', 'Marketing Strategy')"
-                value={generateTopic}
-                onChange={(e) => setGenerateTopic(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleGenerateNote()}
-                disabled={isGenerating}
-              />
-              <Button 
-                onClick={handleGenerateNote} 
-                disabled={!generateTopic.trim() || isGenerating}
-              >
-                {isGenerating ? 'Generating...' : 'Generate'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Create Note */}
-      {isCreating && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Note</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Title</label>
-              <Input
-                placeholder="Enter note title"
-                value={newNote.title}
-                onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Content</label>
-              <Textarea
-                placeholder="Write your notes here..."
-                value={newNote.content}
-                onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
-                rows={8}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tags</label>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add a tag"
-                  value={newNote.tagInput}
-                  onChange={(e) => setNewNote(prev => ({ ...prev, tagInput: e.target.value }))}
-                  onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                />
-                <Button variant="outline" onClick={handleAddTag}>
-                  <Tag className="w-4 h-4" />
-                </Button>
-              </div>
-              
-              {newNote.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {newNote.tags.map(tag => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="cursor-pointer"
-                      onClick={() => removeTag(tag)}
-                    >
-                      {tag} ×
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={handleCreateNote} disabled={!newNote.title || !newNote.content}>
-                Create Note
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setIsCreating(false);
-                  setNewNote({ title: '', content: '', tags: [], tagInput: '' });
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Search and Actions */}
-      {!isCreating && (
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+            {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search notes..."
                 value={searchTerm}
@@ -251,94 +174,186 @@ const Notes: React.FC<NotesProps> = ({ onBack }) => {
                 className="pl-10"
               />
             </div>
-          </div>
-          
-          <Button onClick={() => setIsCreating(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Note
-          </Button>
-        </div>
-      )}
 
-      {/* Notes Grid */}
-      {!isCreating && (
-        <>
-          {filteredNotes.length === 0 && notes.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No notes yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Create your first note, generate one with AI, or save one from AI Chat
-                </p>
-                <div className="flex gap-2 justify-center">
-                  <Button onClick={() => setIsCreating(true)}>
-                    Create Note
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : filteredNotes.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">No matching notes</h3>
-                <p className="text-muted-foreground">
-                  Try adjusting your search terms
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredNotes.map(note => (
-                <Card key={note.id} className="h-fit">
-                  <CardHeader>
-                    <CardTitle className="text-lg line-clamp-2">{note.title}</CardTitle>
-                    <div className="text-xs text-muted-foreground">
-                      {note.createdAt.toLocaleDateString()}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-3">
-                      {note.content}
-                    </p>
-                    
-                    {note.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {note.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => exportNote(note)}
-                        className="flex-1"
-                      >
-                        <Download className="w-3 h-3 mr-1" />
-                        Export PDF
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteNote(note.id)}
-                        className="flex-1 text-destructive hover:text-destructive"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            {/* AI Generate */}
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Topic for AI-generated notes..."
+                  value={generateTopic}
+                  onChange={(e) => setGenerateTopic(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && generateAINote()}
+                />
+                <Button 
+                  onClick={generateAINote} 
+                  disabled={isGenerating || !generateTopic.trim()}
+                  size="sm"
+                >
+                  {isGenerating ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
-          )}
-        </>
-      )}
+
+            {/* Create New Note */}
+            <Button onClick={createNewNote} className="w-full">
+              <Plus className="w-4 h-4 mr-2" />
+              New Note
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Notes List */}
+        <Card className="flex-1 overflow-hidden">
+          <CardContent className="p-0 h-full overflow-y-auto">
+            {filteredNotes.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">
+                {searchTerm ? 'No notes found' : 'No notes yet. Create your first note!'}
+              </div>
+            ) : (
+              <div className="space-y-2 p-4">
+                {filteredNotes.map(note => (
+                  <div
+                    key={note.id}
+                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                      selectedNote?.id === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted'
+                    }`}
+                    onClick={() => {
+                      setSelectedNote(note);
+                      setIsEditing(false);
+                    }}
+                  >
+                    <h3 className="font-medium truncate">{note.title}</h3>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {note.content.substring(0, 100)}...
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {note.tags.map(tag => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(note.updatedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Note Editor */}
+      <div className="flex-1">
+        {selectedNote ? (
+          <Card className="h-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="truncate">
+                  {isEditing ? 'Edit Note' : selectedNote.title}
+                </CardTitle>
+                <div className="flex gap-2">
+                  {isEditing ? (
+                    <>
+                      <Button onClick={saveNote} size="sm">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsEditing(false)} 
+                        size="sm"
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setIsEditing(true);
+                          setEditTitle(selectedNote.title);
+                          setEditContent(selectedNote.content);
+                          setEditTags(selectedNote.tags.join(', '));
+                        }} 
+                        size="sm"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => exportNoteToPDF(selectedNote)} 
+                        size="sm"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        onClick={() => deleteNote(selectedNote.id)} 
+                        size="sm"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="h-full space-y-4">
+              {isEditing ? (
+                <>
+                  <Input
+                    placeholder="Note title..."
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Tags (comma-separated)..."
+                    value={editTags}
+                    onChange={(e) => setEditTags(e.target.value)}
+                  />
+                  <Textarea
+                    placeholder="Write your note..."
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="min-h-[400px] resize-none"
+                  />
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {selectedNote.tags.map(tag => (
+                      <Badge key={tag} variant="secondary">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="prose max-w-none">
+                    <div className="whitespace-pre-wrap text-sm">
+                      {selectedNote.content}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="h-full">
+            <CardContent className="flex items-center justify-center h-full">
+              <div className="text-center text-muted-foreground">
+                <FileText className="w-12 h-12 mx-auto mb-4" />
+                <p>Select a note to view or edit</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 };

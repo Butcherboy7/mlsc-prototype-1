@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,24 +11,19 @@ import {
   Upload, 
   FileText, 
   Brain, 
-  Sparkles,
   Calculator,
   Code,
   Briefcase,
   Scale,
   BookText,
-  Plus,
-  MessageCircle,
   Save,
   Copy,
   Download,
-  Key,
   ArrowLeft
 } from 'lucide-react';
 import { useVoice } from '@/hooks/useVoice';
 import { openAIService } from '@/lib/openai';
 import { extractTextFromPDF, exportToPDF } from '@/lib/pdf';
-import APIKeySettings from './APIKeySettings';
 
 interface Message {
   id: string;
@@ -39,7 +35,6 @@ interface Message {
     actualContent: string;
     shortSummary: string;
     detailedSummary: string;
-    detectedSubject?: string;
   };
 }
 
@@ -63,7 +58,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { isListening, startListening, stopListening } = useVoice();
+  const { isListening, startListening, stopListening, isSupported } = useVoice();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,6 +80,11 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
   }, [selectedMode]);
 
   const handleVoiceInput = () => {
+    if (!isSupported) {
+      alert('Voice input is not supported on this device/browser.');
+      return;
+    }
+
     if (isListening) {
       stopListening();
     } else {
@@ -129,7 +129,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         type: 'system',
-        content: 'Sorry, I encountered an error. Please check your API key and try again.',
+        content: 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -138,41 +138,52 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
     }
   };
 
-  const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    const fileName = file.name;
+    const fileType = file.type;
 
     setIsLoading(true);
 
     try {
-      const extractedContent = await extractTextFromPDF(file);
+      let content = '';
       
-      // Generate both summaries
-      const [shortSummary, detailedSummary] = await Promise.all([
-        openAIService.summarizePDF(extractedContent, 'short'),
-        openAIService.summarizePDF(extractedContent, 'detailed')
+      if (fileType === 'application/pdf') {
+        content = await extractTextFromPDF(file);
+      } else if (fileType === 'text/plain' || fileName.endsWith('.txt')) {
+        content = await file.text();
+      } else if (fileName.endsWith('.docx')) {
+        // For .docx files, we'll read as text (simplified)
+        content = await file.text();
+      } else {
+        throw new Error('Unsupported file type. Please upload PDF, TXT, or DOCX files.');
+      }
+
+      // Ask AI to analyze the content based on the current mode
+      const modeInfo = studyModes.find(m => m.id === selectedMode);
+      const analysisPrompt = `As a ${modeInfo?.label}, please analyze the following document content and provide helpful insights based on your expertise:\n\n${content.substring(0, 3000)}`;
+      
+      const aiResponse = await openAIService.chat([
+        { role: 'system', content: modeInfo?.prompt || 'You are a helpful tutor.' },
+        { role: 'user', content: analysisPrompt }
       ]);
       
-      const pdfMessage: Message = {
+      const fileMessage: Message = {
         id: crypto.randomUUID(),
         type: 'ai',
-        content: `I've analyzed your PDF "${file.name}". Here are the AI-generated summaries:`,
-        timestamp: new Date(),
-        pdfSummary: {
-          fileName: file.name,
-          actualContent: extractedContent,
-          shortSummary,
-          detailedSummary,
-        }
+        content: `📄 **File Analysis: ${fileName}**\n\n${aiResponse}`,
+        timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, pdfMessage]);
+      setMessages(prev => [...prev, fileMessage]);
     } catch (error) {
-      console.error('PDF processing error:', error);
+      console.error('File processing error:', error);
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         type: 'system',
-        content: 'Sorry, I encountered an error processing your PDF. Please try again.',
+        content: `Sorry, I couldn't process the file "${fileName}". ${(error as Error).message}`,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -183,41 +194,27 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
     event.target.value = '';
   };
 
-  const createNotesFromSummary = (summary: string, fileName: string) => {
-    if ((window as any).addNoteFromAIChat) {
-      (window as any).addNoteFromAIChat(`PDF Summary: ${fileName}`, summary, ['PDF', 'AI Generated']);
-      
-      const successMessage: Message = {
-        id: crypto.randomUUID(),
-        type: 'system',
-        content: `📝 Notes created from "${fileName}"! You can find them in the Notes section.`,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, successMessage]);
-    }
-  };
-
-  const createFlashcardsFromSummary = (summary: string, fileName: string) => {
-    if ((window as any).addFlashcardFromAIChat) {
-      const lines = summary.split('\n').filter(line => line.trim().length > 10);
-      const keyPoints = lines.slice(0, 5);
-      
-      keyPoints.forEach((point, index) => {
-        const question = `What is key concept #${index + 1} from ${fileName}?`;
-        const answer = point.replace(/^[•\-\*]\s*/, '').trim();
-        if (answer.length > 5) {
-          (window as any).addFlashcardFromAIChat(question, answer);
-        }
-      });
-      
-      const successMessage: Message = {
-        id: crypto.randomUUID(),
-        type: 'system',
-        content: `🧠 Flashcards created from "${fileName}"! You can review them in the Flashcards section.`,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, successMessage]);
-    }
+  const saveMessageAsNote = (content: string, title: string) => {
+    const existingNotes = JSON.parse(localStorage.getItem('mentora_notes') || '[]');
+    const newNote = {
+      id: crypto.randomUUID(),
+      title,
+      content,
+      tags: ['AI Chat', 'Export'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    existingNotes.unshift(newNote);
+    localStorage.setItem('mentora_notes', JSON.stringify(existingNotes));
+    
+    const successMessage: Message = {
+      id: crypto.randomUUID(),
+      type: 'system',
+      content: `📝 Saved as note: "${title}"!`,
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, successMessage]);
   };
 
   const copyToClipboard = (text: string) => {
@@ -229,24 +226,6 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
       timestamp: new Date()
     };
     setMessages(prev => [...prev, successMessage]);
-  };
-
-  const exportMessageAsPDF = (content: string, fileName: string) => {
-    exportToPDF(content, fileName);
-  };
-
-  const saveMessageAsNote = (content: string, title: string) => {
-    if ((window as any).addNoteFromAIChat) {
-      (window as any).addNoteFromAIChat(title, content, ['AI Chat', 'Export']);
-      
-      const successMessage: Message = {
-        id: crypto.randomUUID(),
-        type: 'system',
-        content: `📝 Saved as note: "${title}"!`,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, successMessage]);
-    }
   };
 
   const renderMessage = (message: Message) => {
@@ -274,7 +253,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={() => exportMessageAsPDF(message.content, 'AI Response.pdf')}
+                onClick={() => exportToPDF(message.content, 'AI Response.pdf')}
               >
                 <Download className="w-3 h-3 mr-1" />
                 Export PDF
@@ -287,81 +266,14 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                 <Save className="w-3 h-3 mr-1" />
                 Save as Note
               </Button>
-            </div>
-          )}
-
-          {message.pdfSummary && (
-            <div className="mt-4 space-y-4 border-t pt-4">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                <span className="font-medium">{message.pdfSummary.fileName}</span>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-sm text-green-800">📋 Short Summary</h4>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => copyToClipboard(message.pdfSummary!.shortSummary)}
-                      className="h-6 px-2"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <div className="text-sm text-green-700 whitespace-pre-line">
-                    {message.pdfSummary.shortSummary}
-                  </div>
-                </div>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-sm text-blue-800">📖 Detailed Summary</h4>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => copyToClipboard(message.pdfSummary!.detailedSummary)}
-                      className="h-6 px-2"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </Button>
-                  </div>
-                  <div className="text-sm text-blue-700 whitespace-pre-line">
-                    {message.pdfSummary.detailedSummary}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2 mt-3">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => createNotesFromSummary(message.pdfSummary!.detailedSummary, message.pdfSummary!.fileName)}
-                  className="flex-1"
-                >
-                  <Save className="w-3 h-3 mr-1" />
-                  Save as Notes
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => createFlashcardsFromSummary(message.pdfSummary!.detailedSummary, message.pdfSummary!.fileName)}
-                  className="flex-1"
-                >
-                  <Brain className="w-3 h-3 mr-1" />
-                  Create Flashcards
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => exportToPDF(message.pdfSummary!.detailedSummary, `${message.pdfSummary!.fileName}-summary.pdf`)}
-                  className="flex-1"
-                >
-                  <Download className="w-3 h-3 mr-1" />
-                  Export PDF
-                </Button>
-              </div>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => copyToClipboard(message.content)}
+              >
+                <Copy className="w-3 h-3 mr-1" />
+                Copy
+              </Button>
             </div>
           )}
 
@@ -386,7 +298,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
   const currentModeInfo = studyModes.find(m => m.id === selectedMode);
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-200px)]">
+    <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-100px)]">
       {/* Chat Header */}
       <Card className="mb-4">
         <CardHeader className="pb-3">
@@ -402,7 +314,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                       {currentModeInfo.label}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Powered by OpenAI GPT-4
+                      Powered by OpenAI GPT-3.5 Turbo
                     </p>
                   </div>
                 </>
@@ -450,8 +362,8 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf"
-                onChange={handlePDFUpload}
+                accept=".pdf,.txt,.docx"
+                onChange={handleFileUpload}
                 className="hidden"
               />
               
@@ -459,20 +371,22 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoading}
-                title="Upload PDF"
+                title="Upload PDF, TXT, or DOCX file"
               >
                 <Upload className="w-4 h-4" />
               </Button>
               
-              <Button
-                variant="outline"
-                onClick={handleVoiceInput}
-                disabled={isLoading}
-                title={isListening ? "Stop listening" : "Start voice input"}
-                className={isListening ? "bg-red-50 border-red-200" : ""}
-              >
-                {isListening ? <MicOff className="w-4 h-4 text-red-600" /> : <Mic className="w-4 h-4" />}
-              </Button>
+              {isSupported && (
+                <Button
+                  variant="outline"
+                  onClick={handleVoiceInput}
+                  disabled={isLoading}
+                  title={isListening ? "Stop listening" : "Start voice input"}
+                  className={isListening ? "bg-red-50 border-red-200" : ""}
+                >
+                  {isListening ? <MicOff className="w-4 h-4 text-red-600" /> : <Mic className="w-4 h-4" />}
+                </Button>
+              )}
             </div>
             
             <Button 
