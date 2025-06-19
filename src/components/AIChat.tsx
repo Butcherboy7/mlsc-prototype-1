@@ -9,7 +9,6 @@ import {
   Send, 
   Mic, 
   MicOff, 
-  Volume2, 
   Upload, 
   FileText, 
   Brain, 
@@ -22,10 +21,14 @@ import {
   Plus,
   MessageCircle,
   Save,
-  Copy
+  Copy,
+  Download,
+  Key
 } from 'lucide-react';
-import { useAI } from '@/hooks/useAI';
 import { useVoice } from '@/hooks/useVoice';
+import { openAIService } from '@/lib/openai';
+import { extractTextFromPDF, exportToPDF } from '@/lib/pdf';
+import APIKeySettings from './APIKeySettings';
 
 interface Message {
   id: string;
@@ -42,11 +45,11 @@ interface Message {
 }
 
 const studyModes = [
-  { id: 'maths' as StudyMode, label: 'Math Tutor', icon: Calculator, description: 'Expert in mathematics, calculus, algebra, and problem-solving' },
-  { id: 'coding' as StudyMode, label: 'Code Mentor', icon: Code, description: 'Programming expert in multiple languages and best practices' },
-  { id: 'business' as StudyMode, label: 'Business Coach', icon: Briefcase, description: 'Strategy, marketing, finance, and entrepreneurship guide' },
-  { id: 'law' as StudyMode, label: 'Legal Advisor', icon: Scale, description: 'Constitutional law, contracts, and legal principles expert' },
-  { id: 'literature' as StudyMode, label: 'Literature Guide', icon: BookText, description: 'Literary analysis, writing, and critical thinking mentor' }
+  { id: 'maths' as StudyMode, label: 'Maths Tutor', icon: Calculator, prompt: 'You are an expert mathematics tutor. Help students understand mathematical concepts, solve problems step-by-step, and provide clear explanations.' },
+  { id: 'coding' as StudyMode, label: 'Code Mentor', icon: Code, prompt: 'You are a programming expert and mentor. Help with coding problems, explain programming concepts, review code, and guide best practices across multiple programming languages.' },
+  { id: 'business' as StudyMode, label: 'Business Coach', icon: Briefcase, prompt: 'You are a business strategy coach. Help with startup advice, business planning, marketing strategies, financial planning, and entrepreneurship guidance.' },
+  { id: 'law' as StudyMode, label: 'Legal Advisor', icon: Scale, prompt: 'You are a legal education advisor. Help explain legal concepts, constitutional law, case studies, and legal principles for educational purposes.' },
+  { id: 'literature' as StudyMode, label: 'Literature Guide', icon: BookText, prompt: 'You are a literature and writing expert. Help with literary analysis, creative writing, critical thinking, essay writing, and understanding literary works.' }
 ];
 
 const AIChat: React.FC = () => {
@@ -54,15 +57,23 @@ const AIChat: React.FC = () => {
   const [currentMessage, setCurrentMessage] = useState('');
   const [selectedMode, setSelectedMode] = useState<StudyMode | null>(null);
   const [showModeSelector, setShowModeSelector] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showApiSettings, setShowApiSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { isLoading, answerQuestion, summarizePDF } = useAI();
-  const { isListening, startListening, stopListening, speak } = useVoice();
+  const { isListening, startListening, stopListening } = useVoice();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    // Check if API key is available
+    if (!openAIService.getApiKey()) {
+      setShowApiSettings(true);
+    }
+  }, []);
 
   const handleModeSelect = (mode: StudyMode) => {
     setSelectedMode(mode);
@@ -72,7 +83,7 @@ const AIChat: React.FC = () => {
     const welcomeMessage: Message = {
       id: crypto.randomUUID(),
       type: 'ai',
-      content: `Hello! I'm your ${modeInfo?.label}. ${modeInfo?.description}. How can I help you learn today?`,
+      content: `Hello! I'm your ${modeInfo?.label}. ${modeInfo?.prompt.split('.')[1]} How can I help you learn today?`,
       timestamp: new Date()
     };
     
@@ -90,7 +101,12 @@ const AIChat: React.FC = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!currentMessage.trim() || !selectedMode) return;
+    if (!currentMessage.trim() || !selectedMode || isLoading) return;
+
+    if (!openAIService.getApiKey()) {
+      setShowApiSettings(true);
+      return;
+    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -102,14 +118,19 @@ const AIChat: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     const messageToSend = currentMessage;
     setCurrentMessage('');
+    setIsLoading(true);
 
     try {
-      const response = await answerQuestion(messageToSend, selectedMode);
+      const modeInfo = studyModes.find(m => m.id === selectedMode);
+      const response = await openAIService.chat([
+        { role: 'system', content: modeInfo?.prompt || 'You are a helpful tutor.' },
+        { role: 'user', content: messageToSend }
+      ]);
       
       const aiMessage: Message = {
         id: crypto.randomUUID(),
         type: 'ai',
-        content: response.content,
+        content: response,
         timestamp: new Date()
       };
 
@@ -119,104 +140,40 @@ const AIChat: React.FC = () => {
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         type: 'system',
-        content: 'Sorry, I encountered an error. Please try again.',
+        content: 'Sorry, I encountered an error. Please check your API key and try again.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
-    }
-  };
-
-  const detectSubjectFromContent = (content: string): StudyMode => {
-    const keywords = {
-      maths: ['equation', 'formula', 'theorem', 'calculus', 'algebra', 'geometry', 'mathematics', 'number', 'derivative', 'integral', 'function', 'graph', 'solve', 'calculate'],
-      coding: ['function', 'variable', 'algorithm', 'programming', 'code', 'software', 'development', 'javascript', 'python', 'class', 'loop', 'array', 'object', 'method'],
-      business: ['market', 'strategy', 'finance', 'revenue', 'business', 'company', 'management', 'profit', 'marketing', 'sales', 'investment', 'economy'],
-      law: ['legal', 'court', 'contract', 'constitutional', 'statute', 'law', 'judicial', 'rights', 'liability', 'attorney', 'case', 'justice'],
-      literature: ['novel', 'poetry', 'author', 'character', 'narrative', 'literary', 'book', 'prose', 'verse', 'story', 'theme', 'plot']
-    };
-
-    const contentLower = content.toLowerCase();
-    let maxMatches = 0;
-    let detectedSubject: StudyMode = 'maths';
-
-    Object.entries(keywords).forEach(([subject, words]) => {
-      const matches = words.filter(word => contentLower.includes(word)).length;
-      if (matches > maxMatches) {
-        maxMatches = matches;
-        detectedSubject = subject as StudyMode;
-      }
-    });
-
-    return detectedSubject;
-  };
-
-  const extractPDFContent = async (file: File): Promise<string> => {
-    try {
-      // Try to read the file as text
-      const text = await file.text();
-      
-      // If we got readable text, return it
-      if (text && text.trim().length > 50) {
-        return text.trim();
-      }
-      
-      // If no readable text, generate content based on filename
-      const fileName = file.name.toLowerCase();
-      if (fileName.includes('math') || fileName.includes('calculus') || fileName.includes('algebra')) {
-        return `This document contains mathematical concepts including equations, formulas, mathematical theorems, problem-solving techniques, and various mathematical principles. The content covers topics in mathematics education and mathematical analysis.`;
-      } else if (fileName.includes('code') || fileName.includes('programming') || fileName.includes('software')) {
-        return `This document contains programming concepts including code examples, software development principles, algorithms, data structures, programming languages, and computer science fundamentals.`;
-      } else if (fileName.includes('business') || fileName.includes('management') || fileName.includes('finance')) {
-        return `This document contains business concepts including strategic planning, financial analysis, market research, business operations, management principles, and entrepreneurship topics.`;
-      } else if (fileName.includes('law') || fileName.includes('legal') || fileName.includes('constitution')) {
-        return `This document contains legal concepts including constitutional law, legal procedures, court cases, legal principles, statutory interpretation, and judicial processes.`;
-      } else if (fileName.includes('literature') || fileName.includes('novel') || fileName.includes('poetry')) {
-        return `This document contains literary content including literary analysis, character studies, thematic exploration, narrative techniques, and critical literary interpretation.`;
-      } else {
-        return `This document contains educational content covering various academic topics and learning materials as presented in "${file.name}".`;
-      }
-    } catch (error) {
-      console.error('Error reading PDF:', error);
-      return `Educational document: ${file.name} - Content analysis not available, but ready for manual review and summary generation.`;
-    }
-  };
-
-  const generateSummaryFromContent = (content: string, type: 'short' | 'detailed'): string => {
-    const detectedSubject = detectSubjectFromContent(content);
-    
-    if (type === 'short') {
-      const sentences = content.split('.').filter(s => s.trim().length > 10).slice(0, 3);
-      return sentences.map(s => `• ${s.trim()}`).join('\n') + `\n• Subject area: ${detectedSubject}\n• Content type: Educational material`;
-    } else {
-      const words = content.split(' ');
-      const summary = words.slice(0, 200).join(' ');
-      return `**Content Analysis:**\n\n${summary}${words.length > 200 ? '...' : ''}\n\n**Key Topics Identified:**\n- Primary subject: ${detectedSubject}\n- Educational content with learning objectives\n- Suitable for academic study and review\n\n**Learning Applications:**\n- Can be converted to study notes\n- Suitable for flashcard creation\n- Ready for AI-assisted learning sessions`;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !openAIService.getApiKey()) return;
+
+    setIsLoading(true);
 
     try {
-      const extractedContent = await extractPDFContent(file);
-      const detectedSubject = detectSubjectFromContent(extractedContent);
+      const extractedContent = await extractTextFromPDF(file);
       
-      // Generate summaries based on actual content
-      const shortSummary = generateSummaryFromContent(extractedContent, 'short');
-      const detailedSummary = generateSummaryFromContent(extractedContent, 'detailed');
+      // Generate both summaries
+      const [shortSummary, detailedSummary] = await Promise.all([
+        openAIService.summarizePDF(extractedContent, 'short'),
+        openAIService.summarizePDF(extractedContent, 'detailed')
+      ]);
       
       const pdfMessage: Message = {
         id: crypto.randomUUID(),
         type: 'ai',
-        content: `I've analyzed your PDF "${file.name}". Here are the summaries based on the actual content:`,
+        content: `I've analyzed your PDF "${file.name}". Here are the AI-generated summaries:`,
         timestamp: new Date(),
         pdfSummary: {
           fileName: file.name,
           actualContent: extractedContent,
           shortSummary,
           detailedSummary,
-          detectedSubject: studyModes.find(m => m.id === detectedSubject)?.label
         }
       };
 
@@ -230,6 +187,8 @@ const AIChat: React.FC = () => {
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
 
     event.target.value = '';
@@ -251,12 +210,11 @@ const AIChat: React.FC = () => {
 
   const createFlashcardsFromSummary = (summary: string, fileName: string) => {
     if ((window as any).addFlashcardFromAIChat) {
-      // Extract key points to create flashcards
       const lines = summary.split('\n').filter(line => line.trim().length > 10);
-      const keyPoints = lines.slice(0, 5); // Create up to 5 flashcards
+      const keyPoints = lines.slice(0, 5);
       
       keyPoints.forEach((point, index) => {
-        const question = `What is the key concept #${index + 1} from ${fileName}?`;
+        const question = `What is key concept #${index + 1} from ${fileName}?`;
         const answer = point.replace(/^[•\-\*]\s*/, '').trim();
         if (answer.length > 5) {
           (window as any).addFlashcardFromAIChat(question, answer);
@@ -284,6 +242,24 @@ const AIChat: React.FC = () => {
     setMessages(prev => [...prev, successMessage]);
   };
 
+  const exportMessageAsPDF = (content: string, fileName: string) => {
+    exportToPDF(content, fileName);
+  };
+
+  const saveMessageAsNote = (content: string, title: string) => {
+    if ((window as any).addNoteFromAIChat) {
+      (window as any).addNoteFromAIChat(title, content, ['AI Chat', 'Export']);
+      
+      const successMessage: Message = {
+        id: crypto.randomUUID(),
+        type: 'system',
+        content: `📝 Saved as note: "${title}"!`,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, successMessage]);
+    }
+  };
+
   const renderMessage = (message: Message) => {
     const isUser = message.type === 'user';
     const isSystem = message.type === 'system';
@@ -303,22 +279,39 @@ const AIChat: React.FC = () => {
             ))}
           </div>
 
+          {/* AI Response Actions */}
+          {!isUser && !isSystem && (
+            <div className="flex gap-2 mt-3 pt-3 border-t">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => exportMessageAsPDF(message.content, 'AI Response.pdf')}
+              >
+                <Download className="w-3 h-3 mr-1" />
+                Export PDF
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => saveMessageAsNote(message.content, `AI Response - ${new Date().toLocaleDateString()}`)}
+              >
+                <Save className="w-3 h-3 mr-1" />
+                Save as Note
+              </Button>
+            </div>
+          )}
+
           {message.pdfSummary && (
             <div className="mt-4 space-y-4 border-t pt-4">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 <span className="font-medium">{message.pdfSummary.fileName}</span>
-                {message.pdfSummary.detectedSubject && (
-                  <Badge variant="outline" className="text-xs">
-                    {message.pdfSummary.detectedSubject}
-                  </Badge>
-                )}
               </div>
               
               <div className="space-y-3">
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-sm text-green-800">📋 Quick Summary</h4>
+                    <h4 className="font-medium text-sm text-green-800">📋 Short Summary</h4>
                     <Button 
                       size="sm" 
                       variant="ghost"
@@ -370,6 +363,15 @@ const AIChat: React.FC = () => {
                   <Brain className="w-3 h-3 mr-1" />
                   Create Flashcards
                 </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => exportToPDF(message.pdfSummary!.detailedSummary, `${message.pdfSummary!.fileName}-summary.pdf`)}
+                  className="flex-1"
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  Export PDF
+                </Button>
               </div>
             </div>
           )}
@@ -382,6 +384,22 @@ const AIChat: React.FC = () => {
     );
   };
 
+  if (showApiSettings) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <APIKeySettings onApiKeySet={() => setShowApiSettings(false)} />
+        <div className="text-center">
+          <p className="text-muted-foreground text-sm">
+            You need an OpenAI API key to use the AI features. Get one from{' '}
+            <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-primary underline">
+              OpenAI's website
+            </a>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (showModeSelector) {
     return (
       <div className="max-w-4xl mx-auto space-y-6">
@@ -391,6 +409,13 @@ const AIChat: React.FC = () => {
           </div>
           <h1 className="text-3xl font-bold">Welcome to Mentora</h1>
           <p className="text-muted-foreground text-lg">Choose your AI tutor to start learning</p>
+          
+          <div className="flex justify-center">
+            <Button variant="outline" onClick={() => setShowApiSettings(true)}>
+              <Key className="w-4 h-4 mr-2" />
+              API Settings
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -409,7 +434,7 @@ const AIChat: React.FC = () => {
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg mb-2">{mode.label}</h3>
-                      <p className="text-muted-foreground text-sm">{mode.description}</p>
+                      <p className="text-muted-foreground text-sm">{mode.prompt.split('.')[0]}.</p>
                     </div>
                   </div>
                 </CardContent>
@@ -438,24 +463,34 @@ const AIChat: React.FC = () => {
                       {studyModes.find(m => m.id === selectedMode)?.label}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {studyModes.find(m => m.id === selectedMode)?.description}
+                      Powered by OpenAI GPT
                     </p>
                   </div>
                 </>
               )}
             </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                setShowModeSelector(true);
-                setMessages([]);
-                setSelectedMode(null);
-              }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Change Tutor
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowApiSettings(true)}
+              >
+                <Key className="w-4 h-4 mr-2" />
+                API Settings
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setShowModeSelector(true);
+                  setMessages([]);
+                  setSelectedMode(null);
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Change Tutor
+              </Button>
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -464,6 +499,16 @@ const AIChat: React.FC = () => {
       <Card className="flex-1 mb-4">
         <CardContent className="p-6 h-full overflow-y-auto">
           {messages.map(renderMessage)}
+          {isLoading && (
+            <div className="flex justify-start mb-4">
+              <div className="bg-muted p-4 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  <span className="text-sm">AI is thinking...</span>
+                </div>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </CardContent>
       </Card>

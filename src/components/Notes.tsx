@@ -6,13 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { StudyNote } from '@/types';
-import { FileText, Plus, Search, Tag } from 'lucide-react';
+import { FileText, Plus, Search, Tag, Sparkles, Download } from 'lucide-react';
 import { storageUtils } from '@/utils/storage';
+import { openAIService } from '@/lib/openai';
+import { exportToPDF } from '@/lib/pdf';
 
 const Notes: React.FC = () => {
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [generateTopic, setGenerateTopic] = useState('');
   const [newNote, setNewNote] = useState({
     title: '',
     content: '',
@@ -20,13 +24,11 @@ const Notes: React.FC = () => {
     tagInput: ''
   });
 
-  // Load notes from storage on component mount
   useEffect(() => {
     const loadedNotes = storageUtils.loadNotes();
     setNotes(loadedNotes);
   }, []);
 
-  // Save notes whenever the notes state changes
   useEffect(() => {
     storageUtils.saveNotes(notes);
   }, [notes]);
@@ -39,7 +41,7 @@ const Notes: React.FC = () => {
       title: newNote.title,
       content: newNote.content,
       summary: newNote.content.slice(0, 100) + (newNote.content.length > 100 ? '...' : ''),
-      mode: 'maths', // Default mode since study modes are only in AI Chat
+      mode: 'maths',
       tags: newNote.tags,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -48,6 +50,22 @@ const Notes: React.FC = () => {
     setNotes(prev => [...prev, note]);
     setNewNote({ title: '', content: '', tags: [], tagInput: '' });
     setIsCreating(false);
+  };
+
+  const handleGenerateNote = async () => {
+    if (!generateTopic.trim() || !openAIService.getApiKey()) return;
+
+    setIsGenerating(true);
+    try {
+      const { title, content } = await openAIService.generateNote(generateTopic);
+      setNewNote({ title, content, tags: ['AI Generated'], tagInput: '' });
+      setGenerateTopic('');
+      setIsCreating(true);
+    } catch (error) {
+      console.error('Error generating note:', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleAddTag = () => {
@@ -71,13 +89,16 @@ const Notes: React.FC = () => {
     setNotes(prev => prev.filter(note => note.id !== noteId));
   };
 
+  const exportNote = (note: StudyNote) => {
+    exportToPDF(note.content, `${note.title}.pdf`);
+  };
+
   const filteredNotes = notes.filter(note =>
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Function to add note from external sources (like AI Chat)
   const addNoteFromExternal = (title: string, content: string, tags: string[] = []) => {
     const note: StudyNote = {
       id: crypto.randomUUID(),
@@ -92,13 +113,46 @@ const Notes: React.FC = () => {
     setNotes(prev => [...prev, note]);
   };
 
-  // Expose the function globally for AI Chat to use
   React.useEffect(() => {
     (window as any).addNoteFromAIChat = addNoteFromExternal;
   }, []);
 
   return (
     <div className="space-y-6">
+      {/* AI Generate Section */}
+      {!isCreating && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Sparkles className="w-5 h-5 mr-2" />
+              Generate Note with AI
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter a topic (e.g., 'Photosynthesis', 'React Hooks', 'Marketing Strategy')"
+                value={generateTopic}
+                onChange={(e) => setGenerateTopic(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleGenerateNote()}
+                disabled={isGenerating}
+              />
+              <Button 
+                onClick={handleGenerateNote} 
+                disabled={!generateTopic.trim() || isGenerating || !openAIService.getApiKey()}
+              >
+                {isGenerating ? 'Generating...' : 'Generate'}
+              </Button>
+            </div>
+            {!openAIService.getApiKey() && (
+              <p className="text-sm text-muted-foreground">
+                Configure your OpenAI API key in the AI Chat section to use this feature.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Create Note */}
       {isCreating && (
         <Card>
@@ -204,11 +258,13 @@ const Notes: React.FC = () => {
                 <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No notes yet</h3>
                 <p className="text-muted-foreground mb-4">
-                  Create your first note or generate one from AI Chat
+                  Create your first note, generate one with AI, or save one from AI Chat
                 </p>
-                <Button onClick={() => setIsCreating(true)}>
-                  Create Note
-                </Button>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={() => setIsCreating(true)}>
+                    Create Note
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : filteredNotes.length === 0 ? (
@@ -246,14 +302,25 @@ const Notes: React.FC = () => {
                       </div>
                     )}
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteNote(note.id)}
-                      className="w-full text-destructive hover:text-destructive"
-                    >
-                      Delete
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => exportNote(note)}
+                        className="flex-1"
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        Export PDF
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteNote(note.id)}
+                        className="flex-1 text-destructive hover:text-destructive"
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}

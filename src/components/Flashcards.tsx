@@ -7,9 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StudyMode, Flashcard } from '@/types';
-import { Brain, Plus, RotateCcw, Check, X, Volume2, Edit, Save, Filter, Calendar } from 'lucide-react';
+import { Brain, Plus, RotateCcw, Check, X, Edit, Save, Filter, Calendar } from 'lucide-react';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
-import { useVoice } from '@/hooks/useVoice';
 import { storageUtils } from '@/utils/storage';
 
 const Flashcards: React.FC = () => {
@@ -24,17 +23,14 @@ const Flashcards: React.FC = () => {
   const [editForm, setEditForm] = useState({ question: '', answer: '', reviewDate: '' });
 
   const { flashcards, getDueCards, addFlashcard, updateCardDifficulty, deleteFlashcard, updateFlashcard, setFlashcards } = useSpacedRepetition();
-  const { speak } = useVoice();
 
   const dueCards = getDueCards();
 
-  // Load flashcards from storage on mount
   useEffect(() => {
     const loadedFlashcards = storageUtils.loadFlashcards();
     setFlashcards(loadedFlashcards);
   }, [setFlashcards]);
 
-  // Save flashcards whenever they change
   useEffect(() => {
     storageUtils.saveFlashcards(flashcards);
   }, [flashcards]);
@@ -51,7 +47,6 @@ const Flashcards: React.FC = () => {
       mode: 'maths'
     });
 
-    // Update review date if manually set
     if (newCard.reviewDate) {
       updateFlashcard(card.id, { nextReview: reviewDate });
     }
@@ -106,7 +101,6 @@ const Flashcards: React.FC = () => {
     }
   };
 
-  // Function to add flashcard from external sources (like AI Chat)
   const addFlashcardFromExternal = (question: string, answer: string) => {
     addFlashcard({
       question,
@@ -116,7 +110,6 @@ const Flashcards: React.FC = () => {
     });
   };
 
-  // Expose the function globally for AI Chat to use
   React.useEffect(() => {
     (window as any).addFlashcardFromAIChat = addFlashcardFromExternal;
   }, []);
@@ -140,53 +133,45 @@ const Flashcards: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center space-y-4">
-              <div className="min-h-[100px] flex items-center justify-center p-4 bg-muted rounded-lg">
-                <p className="text-lg">{currentCard.question}</p>
+              <div className="min-h-[120px] flex items-center justify-center p-4 bg-muted rounded-lg">
+                <p className="text-lg text-center">{currentCard.question}</p>
               </div>
-              
-              <Button
-                variant="outline"
-                onClick={() => speak(showAnswer ? currentCard.answer : currentCard.question)}
-              >
-                <Volume2 className="w-4 h-4 mr-2" />
-                Listen
-              </Button>
 
               {showAnswer ? (
                 <div className="space-y-4">
-                  <div className="min-h-[100px] flex items-center justify-center p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <p className="text-lg">{currentCard.answer}</p>
+                  <div className="min-h-[120px] flex items-center justify-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-lg text-center">{currentCard.answer}</p>
                   </div>
                   
-                  <div className="flex gap-2 justify-center">
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
                     <Button
                       variant="outline"
                       onClick={() => handleCardResponse('hard')}
-                      className="spaced-repetition-hard"
+                      className="flex-1 bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
                     >
                       <X className="w-4 h-4 mr-2" />
-                      Hard
+                      Hard (1 day)
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => handleCardResponse('medium')}
-                      className="spaced-repetition-medium"
+                      className="flex-1 bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
                     >
                       <RotateCcw className="w-4 h-4 mr-2" />
-                      Medium
+                      Medium (3 days)
                     </Button>
                     <Button
                       variant="outline"
                       onClick={() => handleCardResponse('easy')}
-                      className="spaced-repetition-easy"
+                      className="flex-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
                     >
                       <Check className="w-4 h-4 mr-2" />
-                      Easy
+                      Easy (6 days)
                     </Button>
                   </div>
                 </div>
               ) : (
-                <Button onClick={() => setShowAnswer(true)}>
+                <Button onClick={() => setShowAnswer(true)} size="lg">
                   Show Answer
                 </Button>
               )}
@@ -267,7 +252,7 @@ const Flashcards: React.FC = () => {
             onClick={() => setShowReviewSection(!showReviewSection)}
           >
             <Filter className="w-4 h-4 mr-2" />
-            {showReviewSection ? 'Hide' : 'Show'} All Cards
+            {showReviewSection ? 'Hide' : 'Show'} All Cards ({flashcards.length})
           </Button>
         </div>
       )}
@@ -279,14 +264,14 @@ const Flashcards: React.FC = () => {
             <Card key={card.id} className="mentora-card">
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-sm line-clamp-2">{card.question}</CardTitle>
-                  <div className="flex gap-1">
+                  <CardTitle className="text-sm line-clamp-2 flex-1">{card.question}</CardTitle>
+                  <div className="flex gap-1 ml-2">
                     <Badge 
                       variant="outline" 
                       className={
-                        card.difficulty === 'easy' ? 'spaced-repetition-easy' :
-                        card.difficulty === 'medium' ? 'spaced-repetition-medium' :
-                        'spaced-repetition-hard'
+                        card.difficulty === 'easy' ? 'bg-green-50 border-green-200 text-green-700' :
+                        card.difficulty === 'medium' ? 'bg-yellow-50 border-yellow-200 text-yellow-700' :
+                        'bg-red-50 border-red-200 text-red-700'
                       }
                     >
                       {card.difficulty}

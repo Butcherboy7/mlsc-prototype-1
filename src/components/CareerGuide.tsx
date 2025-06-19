@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Briefcase, User, Target, TrendingUp, BookOpen, Users } from 'lucide-react';
+import { Briefcase, User, Target, TrendingUp, BookOpen, Users, Award, AlertTriangle } from 'lucide-react';
 
 interface Question {
   id: number;
@@ -18,6 +18,7 @@ interface PersonalityType {
   description: string;
   careers: string[];
   strengths: string[];
+  weaknesses: string[];
 }
 
 const personalityTypes: Record<string, PersonalityType> = {
@@ -26,94 +27,186 @@ const personalityTypes: Record<string, PersonalityType> = {
     name: "The Architect",
     description: "Strategic and analytical thinkers who excel at planning and implementing complex solutions.",
     careers: ["Software Engineer", "Data Scientist", "Research Scientist", "Investment Analyst", "Systems Engineer"],
-    strengths: ["Strategic thinking", "Problem-solving", "Independent work", "Long-term planning"]
+    strengths: ["Strategic thinking", "Problem-solving", "Independent work", "Long-term planning"],
+    weaknesses: ["Social situations", "Expressing emotions", "Dealing with interruptions"]
   },
   ENFP: {
     type: "ENFP",
     name: "The Campaigner",
     description: "Enthusiastic and creative individuals who inspire others and thrive in dynamic environments.",
     careers: ["Marketing Manager", "Teacher", "Counselor", "Journalist", "Event Coordinator"],
-    strengths: ["Creativity", "Communication", "Adaptability", "Team motivation"]
+    strengths: ["Creativity", "Communication", "Adaptability", "Team motivation"],
+    weaknesses: ["Attention to detail", "Following routines", "Administrative tasks"]
   },
   ISTJ: {
     type: "ISTJ",
     name: "The Logistician",
     description: "Practical and fact-minded individuals who are reliable and responsible.",
     careers: ["Accountant", "Project Manager", "Administrator", "Engineer", "Financial Analyst"],
-    strengths: ["Organization", "Attention to detail", "Reliability", "Systematic approach"]
+    strengths: ["Organization", "Attention to detail", "Reliability", "Systematic approach"],
+    weaknesses: ["Adapting to change", "Creative thinking", "Expressing emotions"]
   },
   ESFJ: {
     type: "ESFJ",
     name: "The Consul",
     description: "Warm-hearted and cooperative individuals who value harmony and helping others.",
     careers: ["Human Resources", "Social Worker", "Teacher", "Healthcare Professional", "Customer Service Manager"],
-    strengths: ["Empathy", "Communication", "Team collaboration", "Service orientation"]
+    strengths: ["Empathy", "Communication", "Team collaboration", "Service orientation"],
+    weaknesses: ["Handling criticism", "Making tough decisions", "Self-advocacy"]
   },
   ISTP: {
     type: "ISTP",
     name: "The Virtuoso",
     description: "Bold and practical experimenters who are masters of tools and techniques.",
     careers: ["Mechanical Engineer", "Programmer", "Pilot", "Chef", "Emergency Responder"],
-    strengths: ["Problem-solving", "Hands-on skills", "Adaptability", "Technical expertise"]
+    strengths: ["Problem-solving", "Hands-on skills", "Adaptability", "Technical expertise"],
+    weaknesses: ["Long-term planning", "Team communication", "Following rules"]
   },
   ENFJ: {
     type: "ENFJ",
     name: "The Protagonist",
     description: "Charismatic and inspiring leaders who are passionate about helping others reach their potential.",
     careers: ["Manager", "Teacher", "Consultant", "Life Coach", "Non-profit Leader"],
-    strengths: ["Leadership", "Communication", "Mentoring", "Vision setting"]
+    strengths: ["Leadership", "Communication", "Mentoring", "Vision setting"],
+    weaknesses: ["Overcommitting", "Taking criticism personally", "Neglecting own needs"]
+  },
+  INTP: {
+    type: "INTP",
+    name: "The Thinker",
+    description: "Innovative inventors with an unquenchable thirst for knowledge and understanding.",
+    careers: ["Research Scientist", "Software Developer", "Philosopher", "Mathematician", "Writer"],
+    strengths: ["Analytical thinking", "Innovation", "Independence", "Objectivity"],
+    weaknesses: ["Social interaction", "Practical matters", "Emotional expression"]
+  },
+  ESTP: {
+    type: "ESTP",
+    name: "The Entrepreneur",
+    description: "Smart, energetic, and perceptive people who truly enjoy living on the edge.",
+    careers: ["Sales Representative", "Entrepreneur", "Paramedic", "Marketing Executive", "Event Planner"],
+    strengths: ["Adaptability", "People skills", "Practical problem-solving", "Crisis management"],
+    weaknesses: ["Long-term planning", "Attention to detail", "Theoretical concepts"]
   }
 };
 
 const questions: Question[] = [
   {
     id: 1,
-    text: "How do you prefer to spend your free time?",
+    text: "At a party, you would rather:",
     options: [
-      { text: "Reading or learning something new", weights: { INTJ: 3, ISTJ: 2, ISTP: 1 } },
-      { text: "Socializing with friends", weights: { ENFP: 3, ESFJ: 3, ENFJ: 2 } },
-      { text: "Working on projects or hobbies", weights: { INTJ: 2, ISTP: 3, ISTJ: 2 } },
-      { text: "Helping others or volunteering", weights: { ESFJ: 3, ENFJ: 3, ENFP: 2 } }
+      { text: "Interact with many people, including strangers", weights: { ENFP: 3, ESFJ: 3, ENFJ: 3, ESTP: 3 } },
+      { text: "Interact with a few people you know well", weights: { INTJ: 3, ISTJ: 3, ISTP: 3, INTP: 3 } }
     ]
   },
   {
     id: 2,
-    text: "In group discussions, you tend to:",
+    text: "You are more drawn to:",
     options: [
-      { text: "Listen carefully and contribute thoughtfully", weights: { INTJ: 3, ISTJ: 2, ISTP: 2 } },
-      { text: "Lead the conversation enthusiastically", weights: { ENFP: 3, ENFJ: 3 } },
-      { text: "Focus on practical solutions", weights: { ISTJ: 3, ISTP: 2, INTJ: 2 } },
-      { text: "Ensure everyone feels heard", weights: { ESFJ: 3, ENFJ: 2, ENFP: 1 } }
+      { text: "Possibilities and potential", weights: { ENFP: 3, INTJ: 3, ENFJ: 2, INTP: 3 } },
+      { text: "Facts and reality", weights: { ISTJ: 3, ESFJ: 3, ISTP: 3, ESTP: 3 } }
     ]
   },
   {
     id: 3,
-    text: "When facing a complex problem, you:",
+    text: "When making decisions, you rely more on:",
     options: [
-      { text: "Analyze it systematically", weights: { INTJ: 3, ISTJ: 3 } },
-      { text: "Brainstorm creative solutions", weights: { ENFP: 3, ENFJ: 2 } },
-      { text: "Try different approaches hands-on", weights: { ISTP: 3, ENFP: 1 } },
-      { text: "Seek input from others", weights: { ESFJ: 3, ENFJ: 2 } }
+      { text: "Logic and analysis", weights: { INTJ: 3, ISTP: 3, INTP: 3, ESTP: 2 } },
+      { text: "Personal values and feelings", weights: { ENFP: 3, ESFJ: 3, ENFJ: 3, ISTJ: 1 } }
     ]
   },
   {
     id: 4,
-    text: "Your ideal work environment is:",
+    text: "You prefer to:",
     options: [
-      { text: "Quiet and organized", weights: { INTJ: 3, ISTJ: 3, ISTP: 2 } },
-      { text: "Dynamic and collaborative", weights: { ENFP: 3, ESFJ: 2, ENFJ: 3 } },
-      { text: "Flexible with minimal supervision", weights: { INTJ: 2, ISTP: 3, ENFP: 2 } },
-      { text: "Supportive and people-focused", weights: { ESFJ: 3, ENFJ: 2 } }
+      { text: "Have things settled and decided", weights: { INTJ: 3, ISTJ: 3, ESFJ: 3, ENFJ: 3 } },
+      { text: "Keep your options open", weights: { ENFP: 3, ISTP: 3, INTP: 3, ESTP: 3 } }
     ]
   },
   {
     id: 5,
-    text: "You feel most energized when:",
+    text: "In group discussions, you tend to:",
     options: [
-      { text: "Working on long-term strategic projects", weights: { INTJ: 3, ENFJ: 2 } },
-      { text: "Interacting with diverse groups of people", weights: { ENFP: 3, ESFJ: 2, ENFJ: 3 } },
-      { text: "Solving immediate, practical problems", weights: { ISTP: 3, ISTJ: 2 } },
-      { text: "Following established procedures effectively", weights: { ISTJ: 3, ESFJ: 2 } }
+      { text: "Lead the conversation", weights: { ENFJ: 3, ENFP: 2, ESFJ: 2, ESTP: 3 } },
+      { text: "Listen and contribute when needed", weights: { INTJ: 3, ISTJ: 3, ISTP: 3, INTP: 3 } }
+    ]
+  },
+  {
+    id: 6,
+    text: "You are more comfortable with:",
+    options: [
+      { text: "Theoretical discussions", weights: { INTJ: 3, ENFP: 2, INTP: 3, ENFJ: 1 } },
+      { text: "Practical, hands-on activities", weights: { ISTJ: 3, ESFJ: 2, ISTP: 3, ESTP: 3 } }
+    ]
+  },
+  {
+    id: 7,
+    text: "When solving problems, you prefer to:",
+    options: [
+      { text: "Use established methods", weights: { ISTJ: 3, ESFJ: 3, ENFJ: 2, ESTP: 1 } },
+      { text: "Try new approaches", weights: { ENFP: 3, INTJ: 2, ISTP: 3, INTP: 3 } }
+    ]
+  },
+  {
+    id: 8,
+    text: "You work best:",
+    options: [
+      { text: "In a structured environment", weights: { ISTJ: 3, INTJ: 2, ESFJ: 3, ENFJ: 2 } },
+      { text: "With flexibility and freedom", weights: { ENFP: 3, ISTP: 3, INTP: 3, ESTP: 3 } }
+    ]
+  },
+  {
+    id: 9,
+    text: "You are energized by:",
+    options: [
+      { text: "Social interaction", weights: { ENFP: 3, ESFJ: 3, ENFJ: 3, ESTP: 3 } },
+      { text: "Quiet reflection", weights: { INTJ: 3, ISTJ: 3, ISTP: 3, INTP: 3 } }
+    ]
+  },
+  {
+    id: 10,
+    text: "You focus more on:",
+    options: [
+      { text: "The big picture", weights: { INTJ: 3, ENFP: 3, ENFJ: 3, INTP: 2 } },
+      { text: "Specific details", weights: { ISTJ: 3, ESFJ: 3, ISTP: 2, ESTP: 2 } }
+    ]
+  },
+  {
+    id: 11,
+    text: "You make decisions based on:",
+    options: [
+      { text: "Objective criteria", weights: { INTJ: 3, ISTJ: 2, ISTP: 3, INTP: 3 } },
+      { text: "How it affects people", weights: { ENFP: 3, ESFJ: 3, ENFJ: 3, ESTP: 1 } }
+    ]
+  },
+  {
+    id: 12,
+    text: "You prefer to work:",
+    options: [
+      { text: "With deadlines and schedules", weights: { INTJ: 2, ISTJ: 3, ESFJ: 3, ENFJ: 3 } },
+      { text: "At your own pace", weights: { ENFP: 3, ISTP: 3, INTP: 3, ESTP: 2 } }
+    ]
+  },
+  {
+    id: 13,
+    text: "You learn best through:",
+    options: [
+      { text: "Discussion and interaction", weights: { ENFP: 3, ESFJ: 2, ENFJ: 3, ESTP: 3 } },
+      { text: "Independent study", weights: { INTJ: 3, ISTJ: 3, ISTP: 2, INTP: 3 } }
+    ]
+  },
+  {
+    id: 14,
+    text: "You are more interested in:",
+    options: [
+      { text: "What could be", weights: { ENFP: 3, INTJ: 3, ENFJ: 2, INTP: 3 } },
+      { text: "What is", weights: { ISTJ: 3, ESFJ: 3, ISTP: 3, ESTP: 3 } }
+    ]
+  },
+  {
+    id: 15,
+    text: "When facing criticism, you:",
+    options: [
+      { text: "Analyze it objectively", weights: { INTJ: 3, ISTJ: 2, ISTP: 3, INTP: 3 } },
+      { text: "Consider the personal impact", weights: { ENFP: 3, ESFJ: 3, ENFJ: 3, ESTP: 1 } }
     ]
   }
 ];
@@ -169,7 +262,7 @@ const CareerGuide: React.FC = () => {
             </div>
             <CardTitle className="text-2xl">Career Guide</CardTitle>
             <p className="text-muted-foreground">
-              Discover your personality type and explore careers that match your strengths
+              Discover your personality type with our comprehensive 15-question MBTI-style assessment
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -177,17 +270,17 @@ const CareerGuide: React.FC = () => {
               <div className="p-4">
                 <Target className="w-8 h-8 mx-auto mb-2 text-purple-600" />
                 <h3 className="font-medium">Personality Assessment</h3>
-                <p className="text-sm text-muted-foreground">Quick MBTI-style test</p>
+                <p className="text-sm text-muted-foreground">15-question MBTI-style test</p>
               </div>
               <div className="p-4">
                 <Briefcase className="w-8 h-8 mx-auto mb-2 text-blue-600" />
                 <h3 className="font-medium">Career Matching</h3>
-                <p className="text-sm text-muted-foreground">Personalized recommendations</p>
+                <p className="text-sm text-muted-foreground">5 personalized recommendations</p>
               </div>
               <div className="p-4">
                 <TrendingUp className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                <h3 className="font-medium">Growth Insights</h3>
-                <p className="text-sm text-muted-foreground">Understand your strengths</p>
+                <h3 className="font-medium">Strengths & Weaknesses</h3>
+                <p className="text-sm text-muted-foreground">Detailed personality insights</p>
               </div>
             </div>
             
@@ -241,7 +334,7 @@ const CareerGuide: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Users className="w-5 h-5 mr-2" />
+                <Award className="w-5 h-5 mr-2" />
                 Your Strengths
               </CardTitle>
             </CardHeader>
@@ -257,6 +350,25 @@ const CareerGuide: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <AlertTriangle className="w-5 h-5 mr-2" />
+              Areas for Development
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {result.weaknesses.map((weakness, index) => (
+                <div key={index} className="flex items-center p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mr-3" />
+                  <span className="text-orange-800 font-medium">{weakness}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardContent className="pt-6 text-center">
