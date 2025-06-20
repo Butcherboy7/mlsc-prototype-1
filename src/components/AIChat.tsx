@@ -61,6 +61,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const sessionId = useRef<string>(crypto.randomUUID()); // Unique session for context
 
   const { isListening, startListening, stopListening, isSupported } = useVoice();
 
@@ -125,14 +126,16 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
 
         setMessages(prev => [...prev, imageMessage]);
         
-        // Get AI response based on the detected content
-        const modeInfo = studyModes.find(m => m.id === selectedMode);
+        // Use contextual chat with image analysis
         const contextPrompt = getContextPromptForDetectedType(ocrResult.detectedType, selectedMode);
+        const analysisText = `${contextPrompt}\n\nAnalyze this ${ocrResult.detectedType} content:\n${ocrResult.text}`;
         
-        const aiResponse = await openAIService.chat([
-          { role: 'system', content: modeInfo?.prompt || 'You are a helpful tutor.' },
-          { role: 'user', content: `${contextPrompt}\n\nAnalyze this ${ocrResult.detectedType} content:\n${ocrResult.text}` }
-        ]);
+        const aiResponse = await openAIService.contextualChat(
+          analysisText,
+          selectedMode,
+          sessionId.current,
+          `Image analysis: ${ocrResult.text} (detected as ${ocrResult.detectedType})`
+        );
         
         const aiMessage: Message = {
           id: crypto.randomUUID(),
@@ -200,11 +203,12 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
     setIsLoading(true);
 
     try {
-      const modeInfo = studyModes.find(m => m.id === selectedMode);
-      const response = await openAIService.chat([
-        { role: 'system', content: modeInfo?.prompt || 'You are a helpful tutor.' },
-        { role: 'user', content: messageToSend }
-      ]);
+      // Use contextual chat instead of regular chat
+      const response = await openAIService.contextualChat(
+        messageToSend,
+        selectedMode,
+        sessionId.current
+      );
       
       const aiMessage: Message = {
         id: crypto.randomUUID(),
@@ -255,10 +259,11 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
       const modeInfo = studyModes.find(m => m.id === selectedMode);
       const analysisPrompt = `As a ${modeInfo?.label}, please analyze the following document content and provide helpful insights based on your expertise:\n\n${content.substring(0, 3000)}`;
       
-      const aiResponse = await openAIService.chat([
-        { role: 'system', content: modeInfo?.prompt || 'You are a helpful tutor.' },
-        { role: 'user', content: analysisPrompt }
-      ]);
+      const aiResponse = await openAIService.contextualChat(
+        analysisPrompt,
+        selectedMode,
+        sessionId.current
+      );
       
       const fileMessage: Message = {
         id: crypto.randomUUID(),
@@ -426,7 +431,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                       {currentModeInfo.label}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Powered by OpenAI GPT-3.5 Turbo • Image Recognition Enabled
+                      Context-Aware AI • Image Recognition • Conversation Memory
                     </p>
                   </div>
                 </>

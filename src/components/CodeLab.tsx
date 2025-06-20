@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { openAIService } from '@/lib/openai';
+import { pistonService } from '@/lib/piston';
 
 interface CodeLabProps {
   onBack: () => void;
@@ -261,45 +261,34 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
     try {
       if (selectedLanguage === 'html') {
         setOutput('✅ HTML code is ready! In a full implementation, this would render in a live preview window.\n\n📋 Your HTML includes:\n- Modern styling with CSS\n- Interactive JavaScript functions\n- Responsive design elements');
-      } else if (selectedLanguage === 'javascript') {
-        // Simple JavaScript execution simulation
-        const logs: string[] = [];
-        const originalLog = console.log;
-        
-        // Capture console.log output
-        console.log = (...args: any[]) => {
-          logs.push(args.join(' '));
-          originalLog(...args);
-        };
-
-        try {
-          // Simple eval for demonstration (in production, use a proper sandbox)
-          eval(code);
-          setOutput(logs.length > 0 ? '✅ Output:\n' + logs.join('\n') : '✅ Code executed successfully (no console output)');
-        } catch (error) {
-          setOutput(`❌ JavaScript Error:\n${(error as Error).message}\n\n💡 Tip: Check your syntax and try again!`);
-        } finally {
-          console.log = originalLog;
-        }
       } else {
-        // For Python/C++, simulate execution with more realistic output
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Use Piston API for real code execution
+        const pistonLanguage = pistonService.mapLanguageName(
+          languages.find(l => l.value === selectedLanguage)?.label || selectedLanguage
+        );
         
-        if (selectedLanguage === 'python') {
-          if (code.includes('greet_user("Developer")')) {
-            setOutput('✅ Python Output:\nHello, Developer! Welcome to CodeLab.\n5 + 3 = 8\nFibonacci of 7: 13\nReady to code amazing things!\n\n🐍 Python executed successfully!');
-          } else {
-            setOutput('✅ Python code executed successfully!\n\n💡 Note: In a full implementation, this would connect to a Python interpreter (like Piston API) for real code execution.');
-          }
-        } else if (selectedLanguage === 'cpp') {
-          if (code.includes('greetUser("Developer")')) {
-            setOutput('✅ C++ Output:\nHello, Developer! Welcome to CodeLab.\n5 + 3 = 8\nArray: 1 2 3 4 5\nReady to code amazing things!\n\n⚡ C++ compiled and executed successfully!');
-          } else {
-            setOutput('✅ C++ code compiled and executed successfully!\n\n💡 Note: In a full implementation, this would connect to a C++ compiler (like Piston API) for real compilation and execution.');
-          }
+        const result = await pistonService.executeCode(pistonLanguage, code, input);
+        
+        let outputText = '✅ Code executed successfully!\n\n';
+        
+        if (result.run.stdout) {
+          outputText += '📤 Output:\n' + result.run.stdout + '\n';
         }
+        
+        if (result.run.stderr) {
+          outputText += '⚠️ Errors/Warnings:\n' + result.run.stderr + '\n';
+        }
+        
+        if (result.run.code !== 0) {
+          outputText += `❌ Exit code: ${result.run.code}\n`;
+        }
+        
+        outputText += `\n🔧 Language: ${result.language} v${result.version}`;
+        
+        setOutput(outputText);
       }
     } catch (error) {
+      console.error('Code execution error:', error);
       setOutput('❌ Execution Error: ' + (error as Error).message + '\n\n💡 Try asking the AI assistant for help!');
     } finally {
       setIsRunning(false);
@@ -398,7 +387,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
               </div>
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-white">CodeLab</h1>
-                <p className="text-sm text-gray-300">Interactive Coding Environment</p>
+                <p className="text-sm text-gray-300">Interactive Coding Environment • Powered by Piston API</p>
               </div>
             </div>
           </div>
@@ -492,6 +481,23 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
             </Card>
           </div>
 
+          {/* Input Section (for programs that need input) */}
+          <div className="px-4 pb-2">
+            <Card className="bg-black/40 border-white/10 backdrop-blur-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-white">Program Input (optional)</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  className="h-20 font-mono text-sm border-0 resize-none focus:ring-0 bg-transparent text-white placeholder-gray-400"
+                  placeholder="Enter input for your program here..."
+                />
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Output Section */}
           <div className="h-48 sm:h-64 p-4 pt-0">
             <Card className="h-full bg-black/60 border-white/10 backdrop-blur-sm">
@@ -504,7 +510,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
               </CardHeader>
               <CardContent className="p-0 h-full">
                 <div className="h-full min-h-[100px] sm:min-h-[120px] p-4 bg-black/80 text-green-400 font-mono text-sm overflow-auto whitespace-pre-wrap">
-                  {output || '🎯 Click "Run Code" to execute your program and see the output here...\n\n💡 Tips:\n- Use console.log() in JavaScript\n- Use print() in Python\n- Use cout in C++'}
+                  {output || '🎯 Click "Run Code" to execute your program and see the output here...\n\n💡 Real code execution powered by Piston API\n- Supports multiple languages\n- Real-time compilation and execution\n- Secure sandboxed environment'}
                 </div>
               </CardContent>
             </Card>
