@@ -34,7 +34,7 @@ export const geminiService = {
         }
       }).join('\n\n');
 
-      const response = await fetch(`${BASE_URL}/models/gemini-pro:generateContent?key=${this.getApiKey()}`, {
+      const response = await fetch(`${BASE_URL}/models/gemini-1.5-flash-latest:generateContent?key=${this.getApiKey()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
