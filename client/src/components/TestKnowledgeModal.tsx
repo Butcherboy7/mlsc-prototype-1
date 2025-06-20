@@ -133,7 +133,7 @@ Provide brief, constructive feedback focusing on what they understood well and a
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto" aria-describedby="test-knowledge-description">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <BookOpen className="w-5 h-5" />
@@ -145,6 +145,9 @@ Provide brief, constructive feedback focusing on what they understood well and a
             )}
           </DialogTitle>
         </DialogHeader>
+        <div id="test-knowledge-description" className="sr-only">
+          Interactive quiz to test your understanding of the AI response content
+        </div>
 
         <div className="space-y-6">
           {isGeneratingQuestions && (

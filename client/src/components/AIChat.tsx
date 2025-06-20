@@ -268,18 +268,48 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
   const formatAIResponse = (content: string) => {
     let formatted = content;
     
+    // Format math expressions (LaTeX-style)
+    formatted = formatted.replace(/\$\$([^$]+)\$\$/g, '<div class="math-block bg-muted/50 p-4 rounded-lg my-4 text-center font-mono text-lg border-l-4 border-primary">$1</div>');
+    formatted = formatted.replace(/\$([^$]+)\$/g, '<span class="math-inline bg-muted/30 px-2 py-1 rounded font-mono">$1</span>');
+    
+    // Format fractions and mathematical notation
+    formatted = formatted.replace(/(\d+)\/(\d+)/g, '<span class="fraction"><sup>$1</sup>⁄<sub>$2</sub></span>');
+    formatted = formatted.replace(/\^(\d+)/g, '<sup>$1</sup>');
+    formatted = formatted.replace(/_(\d+)/g, '<sub>$1</sub>');
+    
+    // Format code blocks with enhanced styling
     formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)\n```/g, (match, lang, code) => {
-      return `<div class="code-block bg-muted p-3 rounded-md font-mono text-sm overflow-x-auto my-3">
-        ${lang ? `<div class="text-xs text-muted-foreground mb-2">${lang}</div>` : ''}
-        <pre>${code}</pre>
+      return `<div class="code-block bg-muted p-4 rounded-lg font-mono text-sm overflow-x-auto my-4 border border-border">
+        ${lang ? `<div class="text-xs text-muted-foreground mb-2 uppercase tracking-wide font-semibold">${lang}</div>` : ''}
+        <pre class="text-foreground">${code}</pre>
       </div>`;
     });
     
-    formatted = formatted.replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm font-mono">$1</code>');
-    formatted = formatted.replace(/^[-*•]\s+(.+)$/gm, '<div class="flex items-start my-1"><span class="text-primary mr-2">•</span><span>$1</span></div>');
-    formatted = formatted.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="flex items-start my-1"><span class="text-primary font-semibold mr-2 min-w-[1.5rem]">$1.</span><span>$2</span></div>');
-    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
-    formatted = formatted.replace(/^#+\s+(.+)$/gm, '<h3 class="font-semibold text-lg mt-4 mb-2 text-foreground">$1</h3>');
+    // Format inline code
+    formatted = formatted.replace(/`([^`]+)`/g, '<code class="bg-muted px-2 py-1 rounded text-sm font-mono border">$1</code>');
+    
+    // Format headers with better styling
+    formatted = formatted.replace(/^###\s+(.+)$/gm, '<h3 class="text-xl font-bold mt-6 mb-3 text-foreground border-b border-border pb-2">$1</h3>');
+    formatted = formatted.replace(/^##\s+(.+)$/gm, '<h2 class="text-2xl font-bold mt-8 mb-4 text-foreground">$1</h2>');
+    formatted = formatted.replace(/^#\s+(.+)$/gm, '<h1 class="text-3xl font-bold mt-8 mb-6 text-foreground">$1</h1>');
+    
+    // Enhanced bullet points with better spacing
+    formatted = formatted.replace(/^[-*•]\s+(.+)$/gm, '<div class="flex items-start my-2 pl-2"><span class="text-primary mr-3 mt-1 font-bold">•</span><span class="flex-1">$1</span></div>');
+    
+    // Enhanced numbered lists
+    formatted = formatted.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="flex items-start my-2 pl-2"><span class="text-primary font-bold mr-3 min-w-[2rem] text-right">$1.</span><span class="flex-1">$2</span></div>');
+    
+    // Format bold text with better contrast
+    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-bold text-foreground bg-primary/10 px-1 rounded">$1</strong>');
+    
+    // Format definitions (term: definition)
+    formatted = formatted.replace(/^([A-Za-z\s]+):\s+(.+)$/gm, '<div class="definition my-3 p-3 bg-muted/30 rounded-lg border-l-4 border-primary"><strong class="text-primary">$1:</strong> <span>$2</span></div>');
+    
+    // Format examples sections
+    formatted = formatted.replace(/Example:\s*(.+)/gi, '<div class="example my-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800"><div class="font-semibold text-green-800 dark:text-green-300 mb-2">📝 Example:</div><div>$1</div></div>');
+    
+    // Format real-life analogy sections
+    formatted = formatted.replace(/Real-life analogy:\s*(.+)/gi, '<div class="analogy my-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800"><div class="font-semibold text-blue-800 dark:text-blue-300 mb-2">🌍 Real-Life Analogy:</div><div>$1</div></div>');
     
     return formatted;
   };
@@ -313,7 +343,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
             transition={{ duration: 0.5 }}
           >
             {/* Chat Messages */}
-            <Card className="min-h-[600px] flex flex-col">
+            <Card className="min-h-[600px] sm:min-h-[700px] flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Bot className="w-5 h-5" />
@@ -322,7 +352,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="flex-1 space-y-4 mb-4 max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
+                <div className="flex-1 space-y-4 mb-4 max-h-[450px] sm:max-h-[550px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background mobile-optimized">
                   {messages.length === 0 && (
                     <div className="text-center text-muted-foreground py-8">
                       <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
@@ -341,7 +371,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                         transition={{ duration: 0.3 }}
                         className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} px-2`}
                       >
-                        <div className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 break-words transition-all duration-200 hover:shadow-md ${
+                        <div className={`max-w-[90%] sm:max-w-[85%] md:max-w-[80%] rounded-lg p-3 sm:p-4 break-words transition-all duration-200 hover:shadow-md mobile-overflow-wrap ${
                           message.role === 'user' 
                             ? 'bg-primary text-primary-foreground' 
                             : 'bg-muted'
@@ -464,7 +494,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder={`Ask your ${selectedMode} assistant anything...`}
-                      className="min-h-[80px] resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                      className="min-h-[80px] sm:min-h-[60px] resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20 mobile-text-sm"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -476,7 +506,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                       onClick={handleSend} 
                       disabled={!input.trim() || isLoading}
                       size="lg"
-                      className="transition-all duration-200 hover:scale-105"
+                      className="transition-all duration-200 hover:scale-105 min-w-[3rem]"
                     >
                       <Send className="w-4 h-4" />
                     </Button>

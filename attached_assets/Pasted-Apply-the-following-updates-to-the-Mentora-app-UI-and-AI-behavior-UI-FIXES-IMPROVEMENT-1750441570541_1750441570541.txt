@@ -1,0 +1,60 @@
+Apply the following updates to the Mentora app UI and AI behavior:
+
+---
+
+🔧 **UI FIXES & IMPROVEMENTS**
+
+1. **Center welcome message** in Notes view:
+   - The message “Welcome to your notes. Select a note from the sidebar...” should be **vertically centered** in the notes viewing area (not near the top).
+
+2. **Remove "Explain" button** above the input box in Study Modes.
+   - Keep only:
+     - `🧒 Explain Like I'm 5`
+     - `🧬 Give Real-Life Analogy`
+   - These should **actually work**:
+     - “Explain like I’m 5” simplifies the previous response to a child-level explanation.
+     - “Give real-life analogy” uses real-world examples to explain the concept clearly.
+
+3. **Fix YouTube Video Button behavior**:
+   - When clicking **"Explain with Video"**, the AI should not give a YouTube *search link*.
+   - Instead, use the **YouTube API** or similar method to find and return a **specific video link** with:
+     - Title
+     - URL (clickable direct video link)
+     - Short description (1 line)
+   - Make sure the video is relevant, educational, and safe.
+
+4. **Fix text on dashboard**:
+   - Under Mentora logo/title, change “Your AI Companion” to:  
+     **"Your AI Edu Buddy"**
+
+---
+
+💡 **RESPONSE QUALITY ENHANCEMENTS**
+
+5. **Improve math formatting in AI responses**:
+   - Use LaTeX-style or Markdown-style formatting for equations.
+   - Add proper spacing and block formatting.
+   - Structure responses clearly with:
+     - Headings (e.g., `What is a Derivative?`)
+     - Definitions
+     - Examples
+     - Code blocks (if needed)
+     - Real-life analogy section (if triggered)
+
+6. **General formatting cleanup**:
+   - Ensure **bolding**, **spacing**, bullet points, and indentation are consistent.
+   - Group similar sections together clearly.
+   - Use soft background separators if needed for clarity.
+
+---
+
+📱 **Mobile & UI Polish**
+
+7. Ensure all UI fixes work smoothly on **mobile**:
+   - No glitching when the AI responds
+   - Chat and CodeLab transitions should be animated and smooth
+   - Responsive layout for smaller screens
+
+---
+
+Please make all changes modular, animated (where relevant), and ensure dark/light themes are supported. Use smooth transitions and modern UI polish across all study modes.

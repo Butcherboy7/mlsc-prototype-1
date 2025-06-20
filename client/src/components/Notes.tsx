@@ -437,7 +437,7 @@ const Notes: React.FC<NotesProps> = ({ onBack }) => {
                   transition={{ duration: 0.2 }}
                 >
                   <Card className="rounded-xl shadow-md bg-card dark:bg-card border-border dark:border-border min-h-[70vh]">
-                    <CardContent className="flex items-center justify-center h-full">
+                    <CardContent className="flex items-center justify-center h-full min-h-[60vh]">
                       <motion.div 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}

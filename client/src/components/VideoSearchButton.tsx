@@ -33,35 +33,42 @@ const VideoSearchButton: React.FC<VideoSearchButtonProps> = ({
     setVideoResult(null);
     
     try {
-      const prompt = `Based on this content, suggest ONE relevant YouTube video that would help explain this concept. Return ONLY in this exact format:
+      const prompt = `Based on this educational content, find a specific educational YouTube video that would help explain these concepts. You should suggest a real, well-known educational video with accurate details.
 
-TITLE: [Video title]
-DESCRIPTION: [Brief description of why this video is helpful]
-SEARCH: [Exact search terms to find this video on YouTube]
+Return ONLY in this exact format:
+TITLE: [Specific video title from a real educational channel]
+DESCRIPTION: [One line explaining why this video helps with the topic]
+URL: [Direct YouTube video URL - use format: https://www.youtube.com/watch?v=VIDEO_ID]
+
+Focus on popular educational channels like Khan Academy, 3Blue1Brown, Crash Course, Professor Leonard, MIT OpenCourseWare, etc.
 
 Content to find video for:
-${content.substring(0, 500)}...`;
+${content.substring(0, 400)}...`;
 
       const response = await geminiService.contextualChat(prompt, mode, 'video-search');
       
       // Parse the response
-      const lines = response.split('\n');
+      const lines = response.split('\n').filter(line => line.trim());
       const titleLine = lines.find(line => line.startsWith('TITLE:'));
       const descLine = lines.find(line => line.startsWith('DESCRIPTION:'));
-      const searchLine = lines.find(line => line.startsWith('SEARCH:'));
+      const urlLine = lines.find(line => line.startsWith('URL:'));
       
-      if (titleLine && descLine && searchLine) {
+      if (titleLine && descLine && urlLine) {
         const title = titleLine.replace('TITLE:', '').trim();
         const description = descLine.replace('DESCRIPTION:', '').trim();
-        const searchTerms = searchLine.replace('SEARCH:', '').trim();
+        let videoUrl = urlLine.replace('URL:', '').trim();
         
-        // Create YouTube search URL
-        const youtubeSearchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerms)}`;
+        // Validate and clean the URL
+        if (!videoUrl.includes('youtube.com/watch') && !videoUrl.includes('youtu.be/')) {
+          // If AI didn't provide a proper URL, create a targeted search
+          const searchTerms = `${title} educational video`;
+          videoUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerms)}`;
+        }
         
         setVideoResult({
           title,
           description,
-          url: youtubeSearchUrl
+          url: videoUrl
         });
         setIsModalOpen(true);
       } else {
@@ -93,13 +100,16 @@ ${content.substring(0, 500)}...`;
       </Button>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md" aria-describedby="video-suggestion-description">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
               <PlayCircle className="w-5 h-5" />
               <span>Video Suggestion</span>
             </DialogTitle>
           </DialogHeader>
+          <div id="video-suggestion-description" className="sr-only">
+            AI-powered educational video recommendation based on the current content
+          </div>
 
           {error ? (
             <div className="text-center py-6">

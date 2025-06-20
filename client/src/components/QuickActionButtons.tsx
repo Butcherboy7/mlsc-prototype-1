@@ -15,22 +15,16 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
 }) => {
   const actions = [
     {
-      icon: Brain,
-      label: '🧠 Explain',
-      action: 'explain',
-      prompt: `Explain this normally: ${currentMessage}`
-    },
-    {
       icon: Baby,
       label: '🧒 Explain Like I\'m 5',
       action: 'eli5',
-      prompt: `Explain this like I'm 5 years old: ${currentMessage}`
+      prompt: `Please explain the previous response in very simple terms that a 5-year-old would understand. Use simple words, basic examples, and make it fun and easy to grasp.`
     },
     {
       icon: Lightbulb,
       label: '🧬 Give Real-Life Analogy',
       action: 'analogy',
-      prompt: `Give a real-life analogy for this concept: ${currentMessage}`
+      prompt: `Please provide real-world analogies and examples to explain the concepts from the previous response. Use everyday situations and familiar objects to make the ideas clear and relatable.`
     }
   ];
 
