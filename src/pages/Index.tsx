@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
+import BottomNavigation from '@/components/BottomNavigation';
+import DesktopSidebar from '@/components/DesktopSidebar';
 import Notes from '@/components/Notes';
 import Flashcards from '@/components/Flashcards';
 import AIChat from '@/components/AIChat';
@@ -72,28 +74,59 @@ const Index = () => {
     }
   };
 
-  const showNavigation = activeTab !== 'dashboard' && activeTab !== 'codelab';
-
   if (isLoading) {
     return <LoadingScreen onLoadingComplete={handleLoadingComplete} />;
   }
 
+  // Full screen components (dashboard and codelab)
+  if (activeTab === 'dashboard' || activeTab === 'codelab') {
+    return (
+      <div className="min-h-screen bg-background">
+        {renderActiveComponent()}
+      </div>
+    );
+  }
+
+  // Main app layout with sidebar/navigation
   return (
-    <div className="min-h-screen bg-background">
-      {showNavigation && (
-        <Navigation 
+    <div className="min-h-screen bg-background flex">
+      {/* Desktop Sidebar */}
+      <DesktopSidebar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        dueCardsCount={dueCardsCount}
+        onBackToDashboard={handleBackToDashboard}
+      />
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Desktop Top Navigation (hidden on mobile) */}
+        <div className="hidden md:block">
+          <Navigation 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            dueCardsCount={dueCardsCount}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={handleToggleDarkMode}
+            onBackToDashboard={handleBackToDashboard}
+          />
+        </div>
+
+        {/* Content Area */}
+        <main className="flex-1 p-4 pb-20 md:pb-4 overflow-auto">
+          <div className="max-w-4xl mx-auto">
+            {renderActiveComponent()}
+          </div>
+        </main>
+
+        {/* Mobile Bottom Navigation */}
+        <BottomNavigation
           activeTab={activeTab}
           onTabChange={setActiveTab}
           dueCardsCount={dueCardsCount}
-          isDarkMode={isDarkMode}
-          onToggleDarkMode={handleToggleDarkMode}
           onBackToDashboard={handleBackToDashboard}
         />
-      )}
-      
-      <main className={`${showNavigation ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6' : ''}`}>
-        {renderActiveComponent()}
-      </main>
+      </div>
     </div>
   );
 };
