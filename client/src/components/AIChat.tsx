@@ -1,9 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, 
   Image as ImageIcon,
@@ -13,12 +13,16 @@ import {
   User,
   Download,
   Save,
-  FileText
+  FileText,
+  BookOpen
 } from 'lucide-react';
 import { geminiService } from '@/lib/gemini';
 import { extractTextFromImage } from '@/lib/ocr';
 import { exportToPDF } from '@/lib/pdf';
 import StudyModeSelector from '@/components/StudyModeSelector';
+import QuickActionButtons from '@/components/QuickActionButtons';
+import TestKnowledgeModal from '@/components/TestKnowledgeModal';
+import VideoSearchButton from '@/components/VideoSearchButton';
 import { useToast } from '@/hooks/use-toast';
 
 interface Message {
@@ -41,6 +45,8 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
   const [selectedMode, setSelectedMode] = useState<string | null>(initialMode);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [testModalOpen, setTestModalOpen] = useState(false);
+  const [testModalContent, setTestModalContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -76,7 +82,6 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
     try {
       const analysisResult = await extractTextFromImage(file);
       
-      // Handle the OCRResult properly
       const analysisText = typeof analysisResult === 'string' ? analysisResult : analysisResult?.text || '';
       
       if (analysisText && analysisText.trim()) {
@@ -120,7 +125,6 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
     setIsLoading(true);
 
     try {
-      // Convert messages to Gemini format for full conversation history
       const geminiMessages = [
         {
           role: 'system' as const,
@@ -160,10 +164,6 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const generateSessionId = () => {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   };
 
   const saveToNotes = (content: string, messageId: string) => {
@@ -207,13 +207,90 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
     setMessages([]);
   };
 
+  const handleQuickAction = async (action: string, prompt: string) => {
+    if (!selectedMode) return;
+    
+    setInput(prompt);
+    
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: prompt,
+      timestamp: new Date(),
+    };
+
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setInput('');
+    setIsLoading(true);
+
+    try {
+      const geminiMessages = [
+        {
+          role: 'system' as const,
+          content: geminiService.getSystemMessage(selectedMode)
+        },
+        ...updatedMessages.map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.content
+        }))
+      ];
+
+      const response = await geminiService.chat(geminiMessages, true);
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: response,
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('AI Chat error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openTestKnowledge = (content: string) => {
+    setTestModalContent(content);
+    setTestModalOpen(true);
+  };
+
+  const formatAIResponse = (content: string) => {
+    let formatted = content;
+    
+    formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)\n```/g, (match, lang, code) => {
+      return `<div class="code-block bg-muted p-3 rounded-md font-mono text-sm overflow-x-auto my-3">
+        ${lang ? `<div class="text-xs text-muted-foreground mb-2">${lang}</div>` : ''}
+        <pre>${code}</pre>
+      </div>`;
+    });
+    
+    formatted = formatted.replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm font-mono">$1</code>');
+    formatted = formatted.replace(/^[-*•]\s+(.+)$/gm, '<div class="flex items-start my-1"><span class="text-primary mr-2">•</span><span>$1</span></div>');
+    formatted = formatted.replace(/^(\d+)\.\s+(.+)$/gm, '<div class="flex items-start my-1"><span class="text-primary font-semibold mr-2 min-w-[1.5rem]">$1.</span><span>$2</span></div>');
+    formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>');
+    formatted = formatted.replace(/^#+\s+(.+)$/gm, '<h3 class="font-semibold text-lg mt-4 mb-2 text-foreground">$1</h3>');
+    
+    return formatted;
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto p-4 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           {onBack && (
-            <Button variant="ghost" onClick={onBack} className="flex items-center space-x-2">
+            <Button variant="ghost" onClick={onBack} className="flex items-center space-x-2 transition-all duration-200 hover:scale-105">
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </Button>
@@ -230,9 +307,13 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
         />
 
         {selectedMode && (
-          <>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
             {/* Chat Messages */}
-            <Card className="min-h-[400px] flex flex-col">
+            <Card className="min-h-[600px] flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Bot className="w-5 h-5" />
@@ -241,7 +322,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <div className="flex-1 space-y-4 mb-4 max-h-96 overflow-y-auto">
+                <div className="flex-1 space-y-4 mb-4 max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
                   {messages.length === 0 && (
                     <div className="text-center text-muted-foreground py-8">
                       <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
@@ -250,63 +331,97 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                     </div>
                   )}
                   
-                  {messages.map((message) => (
-                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} px-2`}>
-                      <div className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 break-words ${
-                        message.role === 'user' 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted'
-                      }`}>
-                        <div className="flex items-start space-x-2">
-                          {message.role === 'assistant' ? (
-                            <Bot className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0" />
-                          ) : (
-                            <User className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0" />
-                          )}
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <div className="whitespace-pre-wrap text-sm break-words overflow-wrap-anywhere">{message.content}</div>
-                            <div className="text-xs opacity-70 mt-2">
-                              {message.timestamp.toLocaleTimeString()}
-                            </div>
-                            
-                            {/* Individual Response Actions */}
-                            {message.role === 'assistant' && (
-                              <div className="flex flex-wrap gap-2 mt-3">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => saveToNotes(message.content, message.id)}
-                                  className="h-8 px-2 sm:px-3 text-xs"
-                                >
-                                  <Save className="w-3 h-3 mr-1" />
-                                  <span className="hidden sm:inline">Save to Notes</span>
-                                  <span className="sm:hidden">Save</span>
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => exportResponseToPDF(message.content, message.id)}
-                                  className="h-8 px-2 sm:px-3 text-xs"
-                                >
-                                  <FileText className="w-3 h-3 mr-1" />
-                                  <span className="hidden sm:inline">Export PDF</span>
-                                  <span className="sm:hidden">PDF</span>
-                                </Button>
-                              </div>
+                  <AnimatePresence>
+                    {messages.map((message) => (
+                      <motion.div 
+                        key={message.id} 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} px-2`}
+                      >
+                        <div className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 break-words transition-all duration-200 hover:shadow-md ${
+                          message.role === 'user' 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted'
+                        }`}>
+                          <div className="flex items-start space-x-2">
+                            {message.role === 'assistant' ? (
+                              <Bot className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0" />
+                            ) : (
+                              <User className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0" />
                             )}
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div 
+                                className="text-sm break-words overflow-wrap-anywhere"
+                                dangerouslySetInnerHTML={{ 
+                                  __html: message.role === 'assistant' 
+                                    ? formatAIResponse(message.content) 
+                                    : message.content.replace(/\n/g, '<br/>')
+                                }}
+                              />
+                              <div className="text-xs opacity-70 mt-2">
+                                {message.timestamp.toLocaleTimeString()}
+                              </div>
+                              
+                              {/* Individual Response Actions */}
+                              {message.role === 'assistant' && (
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => saveToNotes(message.content, message.id)}
+                                    className="h-8 px-2 sm:px-3 text-xs transition-all duration-200 hover:scale-105"
+                                  >
+                                    <Save className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Save to Notes</span>
+                                    <span className="sm:hidden">Save</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => exportResponseToPDF(message.content, message.id)}
+                                    className="h-8 px-2 sm:px-3 text-xs transition-all duration-200 hover:scale-105"
+                                  >
+                                    <FileText className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Export PDF</span>
+                                    <span className="sm:hidden">PDF</span>
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => openTestKnowledge(message.content)}
+                                    className="h-8 px-2 sm:px-3 text-xs transition-all duration-200 hover:scale-105"
+                                  >
+                                    <BookOpen className="w-3 h-3 mr-1" />
+                                    <span className="hidden sm:inline">Test Knowledge</span>
+                                    <span className="sm:hidden">Test</span>
+                                  </Button>
+                                  <VideoSearchButton 
+                                    content={message.content}
+                                    mode={selectedMode || 'general'}
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                   
                   {isLoading && (
-                    <div className="flex justify-start">
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex justify-start"
+                    >
                       <div className="bg-muted rounded-lg p-4 flex items-center space-x-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
                         <span className="text-sm">AI is thinking...</span>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                   
                   <div ref={messagesEndRef} />
@@ -314,6 +429,13 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
 
                 {/* Input Area */}
                 <div className="space-y-3">
+                  {/* Quick Action Buttons */}
+                  <QuickActionButtons 
+                    onAction={handleQuickAction}
+                    disabled={isLoading}
+                    currentMessage={input}
+                  />
+                  
                   <div className="flex space-x-2">
                     <input
                       type="file"
@@ -327,6 +449,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                       size="sm"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isAnalyzingImage}
+                      className="transition-all duration-200 hover:scale-105"
                     >
                       {isAnalyzingImage ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -341,7 +464,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder={`Ask your ${selectedMode} assistant anything...`}
-                      className="min-h-[80px] resize-none"
+                      className="min-h-[80px] resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
@@ -353,6 +476,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                       onClick={handleSend} 
                       disabled={!input.trim() || isLoading}
                       size="lg"
+                      className="transition-all duration-200 hover:scale-105"
                     >
                       <Send className="w-4 h-4" />
                     </Button>
@@ -360,8 +484,16 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                 </div>
               </CardContent>
             </Card>
-          </>
+          </motion.div>
         )}
+
+        {/* Test Knowledge Modal */}
+        <TestKnowledgeModal
+          isOpen={testModalOpen}
+          onClose={() => setTestModalOpen(false)}
+          originalContent={testModalContent}
+          mode={selectedMode || 'general'}
+        />
       </div>
     </div>
   );

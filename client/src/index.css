@@ -83,6 +83,85 @@
   .spaced-repetition-hard {
     @apply bg-red-50 border-red-200 text-red-800;
   }
+  
+  /* Custom scrollbar styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) hsl(var(--background));
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+
+  .scrollbar-thumb-muted {
+    scrollbar-color: hsl(var(--muted)) hsl(var(--background));
+  }
+
+  .scrollbar-track-background {
+    scrollbar-color: hsl(var(--muted)) hsl(var(--background));
+  }
+
+  /* Enhanced formatting for AI responses */
+  .code-block {
+    background: hsl(var(--muted));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.875rem;
+    overflow-x: auto;
+    margin: 0.75rem 0;
+  }
+
+  .code-block pre {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-size: inherit;
+    color: hsl(var(--foreground));
+  }
+
+  /* Mobile optimizations */
+  .mobile-optimized {
+    padding: 0.5rem;
+  }
+  
+  .mobile-text-sm {
+    font-size: 0.875rem;
+  }
+  
+  .mobile-overflow-wrap {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Smooth transitions for all interactive elements */
+  .transition-smooth {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Hover effects */
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 }
 
 /* Custom scrollbar */

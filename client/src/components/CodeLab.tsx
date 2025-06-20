@@ -434,11 +434,11 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)] gap-0">
         {/* Main Editor Area */}
-        <div className={`flex-1 flex flex-col ${isChatOpen ? 'lg:mr-80' : ''}`}>
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${isChatOpen ? 'lg:mr-2' : ''}`}>
           {/* Code Editor */}
-          <div className="flex-1 p-4">
+          <div className="flex-1 p-4 pb-2">
             <Card className="h-full bg-black/40 border-white/10 backdrop-blur-sm">
               <CardHeader className="pb-2">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -454,7 +454,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                       variant="outline" 
                       size="sm" 
                       onClick={downloadCode} 
-                      className="border-white/20 text-white hover:bg-white/10 bg-white/5"
+                      className="border-white/20 text-white hover:bg-white/10 bg-white/5 transition-all duration-200 hover:scale-105"
                     >
                       <Download className="w-3 h-3 mr-1" />
                       Download
@@ -463,7 +463,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                       variant="outline" 
                       size="sm" 
                       onClick={saveToNotes} 
-                      className="border-white/20 text-white hover:bg-white/10 bg-white/5"
+                      className="border-white/20 text-white hover:bg-white/10 bg-white/5 transition-all duration-200 hover:scale-105"
                     >
                       <Save className="w-3 h-3 mr-1" />
                       Save
@@ -475,25 +475,8 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                 <Textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="h-full min-h-[300px] sm:min-h-[400px] font-mono text-sm border-0 resize-none focus:ring-0 bg-transparent text-white placeholder-gray-400"
+                  className="h-full min-h-[300px] sm:min-h-[400px] font-mono text-sm border-0 resize-none focus:ring-0 bg-transparent text-white placeholder-gray-400 transition-all duration-200"
                   placeholder="Write your code here..."
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Input Section (for programs that need input) */}
-          <div className="px-4 pb-2">
-            <Card className="bg-black/40 border-white/10 backdrop-blur-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-white">Program Input (optional)</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  className="h-20 font-mono text-sm border-0 resize-none focus:ring-0 bg-transparent text-white placeholder-gray-400"
-                  placeholder="Enter input for your program here..."
                 />
               </CardContent>
             </Card>
@@ -519,90 +502,132 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
         </div>
 
         {/* AI Chat Sidebar */}
-        {isChatOpen && (
-          <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/20 backdrop-blur-sm flex flex-col">
-            <div className="p-4 border-b border-white/10">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-white flex items-center">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  AI Coding Assistant
-                </h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsChatOpen(false)} 
-                  className="text-white hover:bg-white/10"
-                >
-                  <ChevronRight className="w-4 h-4 lg:hidden" />
-                  <span className="lg:hidden ml-1">Close</span>
-                  <ChevronRight className="w-4 h-4 hidden lg:block" />
-                </Button>
-              </div>
-              <p className="text-sm text-gray-300 mt-2">
-                Ask questions about your code, get help with bugs, or learn new concepts.
-              </p>
-            </div>
-
-            <div className="flex-1 overflow-auto p-4 space-y-4 max-h-64 lg:max-h-none">
-              {chatMessages.length === 0 ? (
-                <div className="text-center text-gray-400">
-                  <MessageCircle className="w-8 h-8 mx-auto mb-2" />
-                  <p className="text-sm mb-4">Ask me anything about your code!</p>
-                  <div className="space-y-2 text-xs">
-                    <div className="p-2 bg-white/5 rounded text-left">💡 "How do I fix this error?"</div>
-                    <div className="p-2 bg-white/5 rounded text-left">🚀 "Optimize this function"</div>
-                    <div className="p-2 bg-white/5 rounded text-left">📚 "Explain this concept"</div>
-                  </div>
+        <AnimatePresence>
+          {isChatOpen && (
+            <motion.div 
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 100 }}
+              transition={{ duration: 0.3 }}
+              className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/20 backdrop-blur-sm flex flex-col"
+            >
+              <div className="p-4 border-b border-white/10">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-white flex items-center">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    AI Coding Assistant
+                  </h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsChatOpen(false)} 
+                    className="text-white hover:bg-white/10 transition-all duration-200 hover:scale-105"
+                  >
+                    <ChevronRight className="w-4 h-4 lg:hidden" />
+                    <span className="lg:hidden ml-1">Close</span>
+                    <ChevronRight className="w-4 h-4 hidden lg:block" />
+                  </Button>
                 </div>
-              ) : (
-                chatMessages.map(message => (
-                  <div key={message.id} className={`p-3 rounded-lg ${
-                    message.type === 'user' 
-                      ? 'bg-blue-500/20 text-blue-100 ml-4' 
-                      : 'bg-white/10 text-gray-100 mr-4'
-                  }`}>
-                    <div className="text-sm whitespace-pre-wrap">{message.content}</div>
-                    <div className="text-xs opacity-70 mt-1">
-                      {message.timestamp.toLocaleTimeString()}
+                <p className="text-sm text-gray-300 mt-2">
+                  Ask questions about your code, get help with bugs, or learn new concepts.
+                </p>
+              </div>
+
+              <div className="flex-1 overflow-auto p-4 space-y-4 max-h-64 lg:max-h-none">
+                {chatMessages.length === 0 ? (
+                  <div className="text-center text-gray-400">
+                    <MessageCircle className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-sm mb-4">Ask me anything about your code!</p>
+                    <div className="space-y-2 text-xs">
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="p-2 bg-white/5 rounded text-left transition-all duration-200 hover:bg-white/10"
+                      >
+                        "How do I fix this error?"
+                      </motion.div>
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="p-2 bg-white/5 rounded text-left transition-all duration-200 hover:bg-white/10"
+                      >
+                        "Optimize this function"
+                      </motion.div>
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="p-2 bg-white/5 rounded text-left transition-all duration-200 hover:bg-white/10"
+                      >
+                        "Explain this concept"
+                      </motion.div>
                     </div>
                   </div>
-                ))
-              )}
-              {isAskingAI && (
-                <div className="bg-white/10 p-3 rounded-lg mr-4">
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-gray-300">AI is analyzing your code...</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-white/10">
-              <div className="flex space-x-2">
-                <Textarea
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Ask about your code..."
-                  className="min-h-[60px] resize-none bg-white/10 border-white/20 text-white placeholder-gray-400 text-sm"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      askAI();
-                    }
-                  }}
-                />
-                <Button 
-                  onClick={askAI} 
-                  disabled={isAskingAI || !chatInput.trim()} 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                </Button>
+                ) : (
+                  <AnimatePresence>
+                    {chatMessages.map(message => (
+                      <motion.div 
+                        key={message.id} 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className={`p-3 rounded-lg transition-all duration-200 hover:shadow-md ${
+                          message.type === 'user' 
+                            ? 'bg-blue-500/20 text-blue-100 ml-4' 
+                            : 'bg-white/10 text-gray-100 mr-4'
+                        }`}
+                      >
+                        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                        <div className="text-xs opacity-70 mt-1">
+                          {message.timestamp.toLocaleTimeString()}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                )}
+                {isAskingAI && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="bg-white/10 p-3 rounded-lg mr-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm text-gray-300">AI is analyzing your code...</span>
+                    </div>
+                  </motion.div>
+                )}
               </div>
-            </div>
-          </div>
-        )}
+
+              <div className="p-4 border-t border-white/10">
+                <div className="flex space-x-2">
+                  <Textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask about your code..."
+                    className="min-h-[60px] resize-none bg-white/10 border-white/20 text-white placeholder-gray-400 text-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500/20"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        askAI();
+                      }
+                    }}
+                  />
+                  <Button 
+                    onClick={askAI} 
+                    disabled={isAskingAI || !chatInput.trim()} 
+                    className="bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 hover:scale-105"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
