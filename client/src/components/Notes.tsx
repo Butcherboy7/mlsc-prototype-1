@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
   Search, 
@@ -147,214 +148,315 @@ const Notes: React.FC<NotesProps> = ({ onBack }) => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto flex h-[calc(100vh-100px)] gap-6">
-      {/* Notes List */}
-      <div className="w-1/3 space-y-4">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center">
-                <FileText className="w-5 h-5 mr-2" />
-                Notes
-              </CardTitle>
-              <Button variant="outline" size="sm" onClick={onBack}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search notes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* AI Generate */}
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Topic for AI-generated notes..."
-                  value={generateTopic}
-                  onChange={(e) => setGenerateTopic(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && generateAINote()}
-                />
-                <Button 
-                  onClick={generateAINote} 
-                  disabled={isGenerating || !generateTopic.trim()}
-                  size="sm"
-                >
-                  {isGenerating ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
-                  ) : (
-                    <Sparkles className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            {/* Create New Note */}
-            <Button onClick={createNewNote} className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              New Note
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="min-h-screen bg-background dark:bg-background"
+    >
+      {/* Header with Back Button */}
+      <div className="px-4 py-6 md:px-8 lg:px-12 xl:px-16">
+        <div className="flex items-center justify-between mb-6">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="flex items-center"
+          >
+            <Button variant="outline" size="sm" onClick={onBack} className="mr-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
             </Button>
-          </CardContent>
-        </Card>
+            <div className="flex items-center">
+              <FileText className="w-6 h-6 mr-3 text-primary" />
+              <h1 className="text-2xl font-bold text-foreground dark:text-foreground">Notes</h1>
+            </div>
+          </motion.div>
+        </div>
 
-        {/* Notes List */}
-        <Card className="flex-1 overflow-hidden">
-          <CardContent className="p-0 h-full overflow-y-auto">
-            {filteredNotes.length === 0 ? (
-              <div className="p-6 text-center text-muted-foreground">
-                {searchTerm ? 'No notes found' : 'No notes yet. Create your first note!'}
-              </div>
-            ) : (
-              <div className="space-y-2 p-4">
-                {filteredNotes.map(note => (
-                  <div
-                    key={note.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                      selectedNote?.id === note.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted'
-                    }`}
-                    onClick={() => {
-                      setSelectedNote(note);
-                      setIsEditing(false);
-                    }}
-                  >
-                    <h3 className="font-medium truncate">{note.title}</h3>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {note.content.substring(0, 100)}...
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {note.tags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {new Date(note.updatedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Note Editor */}
-      <div className="flex-1">
-        {selectedNote ? (
-          <Card className="h-full">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="truncate">
-                  {isEditing ? 'Edit Note' : selectedNote.title}
+        {/* Main Content Area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 xl:gap-8">
+          {/* Left Panel - Note Input and Search */}
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="lg:col-span-1 space-y-6"
+          >
+            {/* AI Note Generation */}
+            <Card className="rounded-xl shadow-md bg-card dark:bg-card border-border dark:border-border">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center text-lg">
+                  <Sparkles className="w-5 h-5 mr-2 text-primary" />
+                  AI Note Generator
                 </CardTitle>
-                <div className="flex gap-2">
-                  {isEditing ? (
-                    <>
-                      <Button onClick={saveNote} size="sm">
-                        <Save className="w-4 h-4 mr-2" />
-                        Save
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setIsEditing(false)} 
-                        size="sm"
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          setIsEditing(true);
-                          setEditTitle(selectedNote.title);
-                          setEditContent(selectedNote.content);
-                          setEditTags(selectedNote.tags.join(', '));
-                        }} 
-                        size="sm"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => exportNoteToPDF(selectedNote)} 
-                        size="sm"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        onClick={() => deleteNote(selectedNote.id)} 
-                        size="sm"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </>
-                  )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3">
+                  <Input
+                    placeholder="Enter a topic for AI-generated notes..."
+                    value={generateTopic}
+                    onChange={(e) => setGenerateTopic(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && generateAINote()}
+                    className="rounded-lg bg-background dark:bg-background border-input dark:border-input h-11"
+                  />
+                  <Button 
+                    onClick={generateAINote} 
+                    disabled={isGenerating || !generateTopic.trim()}
+                    className="w-full h-11 rounded-lg"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Generate with AI
+                      </>
+                    )}
+                  </Button>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="h-full space-y-4">
-              {isEditing ? (
-                <>
+              </CardContent>
+            </Card>
+
+            {/* Search and New Note */}
+            <Card className="rounded-xl shadow-md bg-card dark:bg-card border-border dark:border-border">
+              <CardContent className="p-6 space-y-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Note title..."
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Search your notes..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 rounded-lg bg-background dark:bg-background border-input dark:border-input h-11"
                   />
-                  <Input
-                    placeholder="Tags (comma-separated)..."
-                    value={editTags}
-                    onChange={(e) => setEditTags(e.target.value)}
-                  />
-                  <Textarea
-                    placeholder="Write your note..."
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    className="min-h-[400px] resize-none"
-                  />
-                </>
+                </div>
+
+                {/* Create New Note */}
+                <Button onClick={createNewNote} className="w-full h-11 rounded-lg">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create New Note
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Notes List */}
+            <Card className="rounded-xl shadow-md bg-card dark:bg-card border-border dark:border-border">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg">Your Notes ({filteredNotes.length})</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="max-h-96 overflow-y-auto">
+                  <AnimatePresence>
+                    {filteredNotes.length === 0 ? (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="p-6 text-center text-muted-foreground"
+                      >
+                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>{searchTerm ? 'No notes found' : 'No notes yet. Create your first note!'}</p>
+                      </motion.div>
+                    ) : (
+                      <div className="space-y-2 p-4">
+                        {filteredNotes.map((note, index) => (
+                          <motion.div
+                            key={note.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className={`p-4 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-sm ${
+                              selectedNote?.id === note.id 
+                                ? 'bg-primary/10 dark:bg-primary/20 border border-primary/30 shadow-sm' 
+                                : 'hover:bg-muted dark:hover:bg-muted/50'
+                            }`}
+                            onClick={() => {
+                              setSelectedNote(note);
+                              setIsEditing(false);
+                            }}
+                          >
+                            <h3 className="font-medium truncate text-foreground dark:text-foreground">{note.title}</h3>
+                            <p className="text-sm text-muted-foreground truncate mt-1">
+                              {note.content.substring(0, 80)}...
+                            </p>
+                            <div className="flex flex-wrap gap-1 mt-3">
+                              {note.tags.slice(0, 2).map(tag => (
+                                <Badge key={tag} variant="secondary" className="text-xs rounded-md">
+                                  {tag}
+                                </Badge>
+                              ))}
+                              {note.tags.length > 2 && (
+                                <Badge variant="secondary" className="text-xs rounded-md">
+                                  +{note.tags.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {new Date(note.updatedAt).toLocaleDateString()}
+                            </p>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Right Panel - Note Editor */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="lg:col-span-2"
+          >
+            <AnimatePresence mode="wait">
+              {selectedNote ? (
+                <motion.div
+                  key={selectedNote.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card className="rounded-xl shadow-md bg-card dark:bg-card border-border dark:border-border min-h-[70vh]">
+                    <CardHeader className="pb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <CardTitle className="truncate text-xl text-foreground dark:text-foreground">
+                          {isEditing ? 'Edit Note' : selectedNote.title}
+                        </CardTitle>
+                        <div className="flex gap-2 flex-wrap">
+                          {isEditing ? (
+                            <>
+                              <Button onClick={saveNote} size="sm" className="rounded-lg">
+                                <Save className="w-4 h-4 mr-2" />
+                                Save
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => setIsEditing(false)} 
+                                size="sm"
+                                className="rounded-lg"
+                              >
+                                Cancel
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                  setIsEditing(true);
+                                  setEditTitle(selectedNote.title);
+                                  setEditContent(selectedNote.content);
+                                  setEditTags(selectedNote.tags.join(', '));
+                                }} 
+                                size="sm"
+                                className="rounded-lg"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => exportNoteToPDF(selectedNote)} 
+                                size="sm"
+                                className="rounded-lg"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                onClick={() => deleteNote(selectedNote.id)} 
+                                size="sm"
+                                className="rounded-lg"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {isEditing ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="space-y-4"
+                        >
+                          <Input
+                            placeholder="Note title..."
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="rounded-lg bg-background dark:bg-background border-input dark:border-input h-11"
+                          />
+                          <Input
+                            placeholder="Tags (comma-separated)..."
+                            value={editTags}
+                            onChange={(e) => setEditTags(e.target.value)}
+                            className="rounded-lg bg-background dark:bg-background border-input dark:border-input h-11"
+                          />
+                          <Textarea
+                            placeholder="Write your note..."
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            className="min-h-[400px] resize-none rounded-lg bg-background dark:bg-background border-input dark:border-input"
+                          />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="space-y-6"
+                        >
+                          <div className="flex flex-wrap gap-2">
+                            {selectedNote.tags.map(tag => (
+                              <Badge key={tag} variant="secondary" className="rounded-md">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="prose prose-sm max-w-none dark:prose-invert">
+                            <div className="whitespace-pre-wrap text-foreground dark:text-foreground leading-relaxed">
+                              {selectedNote.content}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {selectedNote.tags.map(tag => (
-                      <Badge key={tag} variant="secondary">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="prose max-w-none">
-                    <div className="whitespace-pre-wrap text-sm">
-                      {selectedNote.content}
-                    </div>
-                  </div>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card className="rounded-xl shadow-md bg-card dark:bg-card border-border dark:border-border min-h-[70vh]">
+                    <CardContent className="flex items-center justify-center h-full">
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-center text-muted-foreground"
+                      >
+                        <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg mb-2">Welcome to your Notes</p>
+                        <p className="text-sm">Select a note from the sidebar to view or edit, or create a new one to get started.</p>
+                      </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               )}
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="h-full">
-            <CardContent className="flex items-center justify-center h-full">
-              <div className="text-center text-muted-foreground">
-                <FileText className="w-12 h-12 mx-auto mb-4" />
-                <p>Select a note to view or edit</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Briefcase, User, Target, TrendingUp, BookOpen, Users, Award, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 interface Question {
