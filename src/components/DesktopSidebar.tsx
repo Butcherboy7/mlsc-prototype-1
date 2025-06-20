@@ -7,8 +7,7 @@ import {
   User, 
   Upload, 
   Code,
-  Home,
-  Settings
+  Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,20 +16,17 @@ interface DesktopSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   dueCardsCount: number;
-  onBackToDashboard: () => void;
 }
 
 const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   activeTab,
   onTabChange,
-  dueCardsCount,
-  onBackToDashboard
+  dueCardsCount
 }) => {
   const sections = [
     {
       title: 'Main',
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: Home, action: onBackToDashboard },
         { id: 'chat', label: 'AI Chat', icon: MessageCircle },
       ]
     },
@@ -52,7 +48,6 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       title: 'Other',
       items: [
         { id: 'career', label: 'Career Test', icon: User },
-        { id: 'settings', label: 'Settings', icon: Settings },
       ]
     }
   ];
@@ -86,7 +81,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                     key={item.id}
                     variant={isActive ? "default" : "ghost"}
                     className="w-full justify-start relative"
-                    onClick={() => item.action ? item.action() : onTabChange(item.id)}
+                    onClick={() => onTabChange(item.id)}
                   >
                     <Icon className="w-4 h-4 mr-3" />
                     {item.label}

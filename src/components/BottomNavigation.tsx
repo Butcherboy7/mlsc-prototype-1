@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, MessageCircle, FileText, Brain, Settings } from 'lucide-react';
+import { Home, MessageCircle, FileText, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -8,26 +8,22 @@ interface BottomNavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   dueCardsCount: number;
-  onBackToDashboard: () => void;
 }
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({
   activeTab,
   onTabChange,
-  dueCardsCount,
-  onBackToDashboard
+  dueCardsCount
 }) => {
   const tabs = [
-    { id: 'dashboard', label: 'Home', icon: Home, action: onBackToDashboard },
-    { id: 'chat', label: 'AI Chat', icon: MessageCircle },
+    { id: 'chat', label: 'Ask Doubts', icon: MessageCircle },
     { id: 'notes', label: 'Notes', icon: FileText },
     { 
       id: 'flashcards', 
       label: 'Cards', 
       icon: Brain, 
       badge: dueCardsCount > 0 ? dueCardsCount : undefined 
-    },
-    { id: 'settings', label: 'Settings', icon: Settings }
+    }
   ];
 
   return (
@@ -45,7 +41,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({
               className={`flex flex-col items-center justify-center h-16 px-3 relative ${
                 isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground'
               }`}
-              onClick={() => tab.action ? tab.action() : onTabChange(tab.id)}
+              onClick={() => onTabChange(tab.id)}
             >
               <Icon className="w-5 h-5 mb-1" />
               <span className="text-xs font-medium">{tab.label}</span>

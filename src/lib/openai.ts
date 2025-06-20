@@ -1,9 +1,6 @@
-export interface OpenAIMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
+import { Message } from '../types';
 
-export interface OpenAIResponse {
+interface OpenAIResponse {
   choices: Array<{
     message: {
       content: string;
@@ -11,225 +8,132 @@ export interface OpenAIResponse {
   }>;
 }
 
-export interface StudyContext {
-  mode: string;
-  conversationHistory: OpenAIMessage[];
-  userProfile?: {
-    level: 'beginner' | 'intermediate' | 'advanced';
-    preferences: string[];
-  };
-}
+// Context memory for each session
+const contextStore = new Map<string, Message[]>();
 
-class OpenAIService {
-  private apiKey: string = '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';
-  private baseUrl: string = 'https://openrouter.ai/api/v1';
-  private contexts: Map<string, StudyContext> = new Map();
+const API_KEY = 'your-openai-api-key-here';
+const BASE_URL = 'https://api.openai.com/v1';
 
-  async chat(messages: OpenAIMessage[], model: string = 'openai/gpt-3.5-turbo'): Promise<string> {
+export const openAIService = {
+  async chat(messages: Message[]): Promise<string> {
     try {
-      console.log('Making API call to:', this.baseUrl);
-      console.log('Using model:', model);
-      
-      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      const response = await fetch(`${BASE_URL}/chat/completions`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Mentora App',
+          'Authorization': `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
-          model,
-          messages,
+          model: 'gpt-4',
+          messages: messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
           max_tokens: 1000,
           temperature: 0.7,
         }),
       });
 
-      console.log('API Response status:', response.status);
-
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+        throw new Error(`OpenAI API error: ${response.status}`);
       }
 
       const data: OpenAIResponse = await response.json();
-      console.log('API Response data:', data);
-      
-      return data.choices[0]?.message?.content || 'No response generated';
+      return data.choices[0]?.message?.content || 'No response generated.';
     } catch (error) {
-      console.error('OpenAI API error:', error);
-      throw error;
+      console.error('OpenAI API Error:', error);
+      return 'I apologize, but I encountered an error. Please try again later.';
     }
-  }
+  },
 
-  // Context-aware chat for study modes
-  async contextualChat(
-    userMessage: string,
-    mode: string,
-    sessionId: string,
-    imageAnalysis?: string
-  ): Promise<string> {
-    let context = this.contexts.get(sessionId);
-    
-    if (!context) {
-      context = {
-        mode,
-        conversationHistory: [],
-        userProfile: {
-          level: 'intermediate',
-          preferences: []
-        }
-      };
-      this.contexts.set(sessionId, context);
+  async contextualChat(userMessage: string, mode: string, sessionId: string): Promise<string> {
+    // Get or create context for this session
+    if (!contextStore.has(sessionId)) {
+      contextStore.set(sessionId, []);
     }
-
-    // Build context-aware system prompt
-    const systemPrompt = this.getContextualSystemPrompt(mode, context);
     
-    // Add user message to history
-    const userMsg: OpenAIMessage = {
-      role: 'user',
-      content: imageAnalysis ? `${userMessage}\n\nImage Analysis: ${imageAnalysis}` : userMessage
+    const context = contextStore.get(sessionId)!;
+    
+    // Add system message based on mode
+    const systemMessage = this.getSystemMessage(mode);
+    
+    // Build conversation with context
+    const messages: Message[] = [
+      { role: 'system', content: systemMessage },
+      ...context,
+      { role: 'user', content: userMessage }
+    ];
+    
+    try {
+      const response = await this.chat(messages);
+      
+      // Update context
+      context.push({ role: 'user', content: userMessage });
+      context.push({ role: 'assistant', content: response });
+      
+      // Keep only last 10 messages for context
+      if (context.length > 10) {
+        context.splice(0, context.length - 10);
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Contextual chat error:', error);
+      return 'I apologize, but I encountered an error. Please try again.';
+    }
+  },
+
+  getSystemMessage(mode: string): string {
+    const prompts = {
+      maths: 'You are an expert mathematics tutor. Help students understand mathematical concepts, solve problems step-by-step, and provide clear explanations. Always show your work and reasoning.',
+      coding: 'You are a skilled programming mentor. Help with coding problems, debug issues, explain concepts, and provide best practices. Support multiple programming languages and frameworks.',
+      business: 'You are a business strategy coach. Provide insights on entrepreneurship, business planning, marketing, finance, and startup guidance. Focus on practical, actionable advice.',
+      legal: 'You are a legal advisor specializing in explaining legal concepts. Help understand laws, regulations, and legal processes. Always remind users to consult qualified attorneys for specific legal advice.',
+      literature: 'You are a literature guide and writing coach. Help with literary analysis, writing techniques, grammar, and creative expression. Provide constructive feedback and suggestions.'
     };
     
-    context.conversationHistory.push(userMsg);
+    return prompts[mode as keyof typeof prompts] || 'You are a helpful AI assistant focused on education and learning.';
+  },
 
-    // Keep only last 10 messages for context window management
-    const recentHistory = context.conversationHistory.slice(-10);
-    
-    const messages: OpenAIMessage[] = [
-      { role: 'system', content: systemPrompt },
-      ...recentHistory
+  async summarizePDF(content: string, type: 'short' | 'detailed' = 'short'): Promise<string> {
+    const prompt = type === 'short' 
+      ? `Provide a concise summary of this document in bullet points (max 200 words). Focus on key concepts, main ideas, and important details:\n\n${content}`
+      : `Provide a comprehensive, detailed summary of this document. Analyze the core content and themes, ignoring metadata or document structure. Explain the main concepts like a tutor teaching a student. Include:\n\n1. Overview of main topics\n2. Key concepts and definitions\n3. Important details and examples\n4. Structure with clear headings\n5. Educational insights\n\nDocument content:\n\n${content}`;
+
+    const messages: Message[] = [
+      { role: 'system', content: 'You are an expert document analyzer and educational content creator. Focus on the educational value and core concepts, not document metadata.' },
+      { role: 'user', content: prompt }
     ];
 
-    const response = await this.chat(messages);
+    try {
+      return await this.chat(messages);
+    } catch (error) {
+      console.error('PDF summarization error:', error);
+      return 'Unable to generate summary. Please try again.';
+    }
+  },
+
+  async generateNotes(topic: string, context?: string): Promise<string> {
+    const prompt = context 
+      ? `Create comprehensive study notes for: ${topic}\n\nAdditional context: ${context}`
+      : `Create comprehensive study notes for: ${topic}`;
+
+    const messages: Message[] = [
+      { role: 'system', content: 'You are an expert educator. Create well-structured, comprehensive study notes with clear headings, bullet points, and examples.' },
+      { role: 'user', content: prompt }
+    ];
+
+    return await this.chat(messages);
+  },
+
+  async explainConcept(concept: string, level: string = 'intermediate'): Promise<string> {
+    const prompt = `Explain this concept at a ${level} level: ${concept}`;
     
-    // Add AI response to history
-    context.conversationHistory.push({
-      role: 'assistant',
-      content: response
-    });
+    const messages: Message[] = [
+      { role: 'system', content: 'You are a patient tutor. Provide clear, step-by-step explanations with examples.' },
+      { role: 'user', content: prompt }
+    ];
 
-    return response;
+    return await this.chat(messages);
   }
-
-  private getContextualSystemPrompt(mode: string, context: StudyContext): string {
-    const basePrompts = {
-      maths: `You are an expert mathematics tutor with deep knowledge across all mathematical disciplines. You adapt your teaching style based on the student's level and provide step-by-step solutions with clear explanations. You can solve problems from images, handle handwritten equations, and explain concepts from basic arithmetic to advanced calculus, linear algebra, and beyond.
-
-Key behaviors:
-- Always show your work step-by-step
-- Explain the reasoning behind each step
-- Provide alternative solution methods when applicable
-- Use visual aids and examples when helpful
-- Ask clarifying questions if the problem is unclear`,
-
-      coding: `You are a senior software engineer and coding mentor with expertise across multiple programming languages. You help students understand programming concepts, debug code, optimize solutions, and learn best practices. You can analyze code from screenshots and provide comprehensive feedback.
-
-Key behaviors:
-- Explain code line by line when needed
-- Suggest improvements and optimizations
-- Teach debugging techniques
-- Provide examples and alternative approaches
-- Focus on clean, readable, and efficient code
-- Help with both syntax and algorithmic thinking`,
-
-      business: `You are a seasoned business strategist and coach with experience in startups, corporate strategy, marketing, finance, and operations. You help students understand business concepts, analyze case studies, and develop strategic thinking skills.
-
-Key behaviors:
-- Use real-world examples and case studies
-- Break down complex business concepts into digestible parts
-- Provide frameworks for analysis (SWOT, Porter's Five Forces, etc.)
-- Connect theory to practical applications
-- Ask probing questions to develop critical thinking`,
-
-      legal: `You are a legal education expert specializing in constitutional law, case law analysis, legal writing, and jurisprudence. You help students understand legal principles, analyze cases, and develop legal reasoning skills for educational purposes only.
-
-Key behaviors:
-- Explain legal concepts clearly with examples
-- Break down case law and precedents
-- Help with legal writing and argumentation
-- Provide historical context for legal developments
-- Emphasize critical analysis and reasoning
-- Always clarify this is for educational purposes only`,
-
-      literature: `You are a literature professor and literary critic with deep knowledge of world literature, literary theory, and critical analysis. You help students understand literary works, develop analytical skills, and appreciate the art of writing.
-
-Key behaviors:
-- Provide rich context about authors and historical periods
-- Explain literary devices and techniques
-- Guide close reading and textual analysis
-- Connect themes across different works
-- Encourage personal interpretation while teaching analytical frameworks
-- Help with essay writing and critical thinking`
-    };
-
-    const modeKey = mode.toLowerCase().replace(/\s+/g, '').replace('tutor', '').replace('mentor', '').replace('coach', '').replace('advisor', '').replace('guide', '');
-    let prompt = basePrompts[modeKey as keyof typeof basePrompts] || basePrompts.maths;
-
-    // Add conversation context
-    if (context.conversationHistory.length > 0) {
-      prompt += `\n\nConversation context: We've been discussing ${mode.toLowerCase()} topics. Continue building on our previous conversation naturally.`;
-    }
-
-    // Add user level adaptation
-    if (context.userProfile?.level) {
-      const levelGuidance = {
-        beginner: "Explain concepts from the ground up, use simple language, and provide plenty of examples.",
-        intermediate: "Balance fundamental explanations with more advanced concepts, and challenge the student appropriately.",
-        advanced: "Focus on nuanced concepts, advanced techniques, and encourage independent problem-solving."
-      };
-      prompt += `\n\nStudent level: ${context.userProfile.level}. ${levelGuidance[context.userProfile.level]}`;
-    }
-
-    return prompt;
-  }
-
-  async summarizePDF(content: string, type: 'short' | 'detailed'): Promise<string> {
-    const prompt = type === 'short' 
-      ? 'Provide a concise summary in 1-2 paragraphs with key points:'
-      : 'Provide a detailed, comprehensive summary with section-wise breakdown:';
-
-    return this.chat([
-      { role: 'system', content: 'You are a helpful assistant that creates accurate summaries based on the provided content.' },
-      { role: 'user', content: `${prompt}\n\n${content}` }
-    ]);
-  }
-
-  async generateNote(topic: string): Promise<{ title: string; content: string }> {
-    const response = await this.chat([
-      { role: 'system', content: 'You are an educational content creator. Generate comprehensive, well-structured study notes with clear sections and bullet points.' },
-      { role: 'user', content: `Create detailed study notes about: ${topic}. Include key concepts, definitions, and examples.` }
-    ]);
-
-    return {
-      title: `Study Notes: ${topic}`,
-      content: response
-    };
-  }
-
-  async helpWithCode(code: string, language: string, question: string): Promise<string> {
-    return this.chat([
-      { role: 'system', content: `You are an expert ${language} programming assistant. Help analyze code, fix bugs, suggest improvements, and answer coding questions.` },
-      { role: 'user', content: `Language: ${language}\n\nCode:\n${code}\n\nQuestion: ${question}` }
-    ]);
-  }
-
-  // Clear context for a session
-  clearContext(sessionId: string): void {
-    this.contexts.delete(sessionId);
-  }
-
-  // Legacy methods for compatibility (will be removed after refactoring)
-  getApiKey(): string {
-    return this.apiKey;
-  }
-
-  setApiKey(key: string): void {
-    this.apiKey = key;
-  }
-}
-
-export const openAIService = new OpenAIService();
+};

@@ -18,6 +18,7 @@ const Index = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDashboard, setShowDashboard] = useState(true);
   
   const { getDueCards } = useSpacedRepetition();
   const dueCardsCount = getDueCards().length;
@@ -35,6 +36,7 @@ const Index = () => {
   };
 
   const handleSelectMode = (mode: string) => {
+    setShowDashboard(false);
     if (['maths', 'coding', 'business', 'legal', 'literature'].includes(mode)) {
       setSelectedMode(mode);
       setActiveTab('chat');
@@ -44,8 +46,13 @@ const Index = () => {
     }
   };
 
-  const handleBackToDashboard = () => {
-    setActiveTab('dashboard');
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSelectedMode(null);
+  };
+
+  const handleBackToMain = () => {
+    setActiveTab('chat');
     setSelectedMode(null);
   };
 
@@ -54,23 +61,25 @@ const Index = () => {
   };
 
   const renderActiveComponent = () => {
+    if (showDashboard && activeTab === 'dashboard') {
+      return <WelcomeDashboard onSelectMode={handleSelectMode} />;
+    }
+
     switch (activeTab) {
-      case 'dashboard':
-        return <WelcomeDashboard onSelectMode={handleSelectMode} />;
       case 'chat':
-        return <AIChat selectedMode={selectedMode} onBack={handleBackToDashboard} />;
+        return <AIChat selectedMode={selectedMode} />;
       case 'notes':
-        return <Notes onBack={handleBackToDashboard} />;
+        return <Notes onBack={handleBackToMain} />;
       case 'flashcards':
-        return <Flashcards onBack={handleBackToDashboard} />;
+        return <Flashcards onBack={handleBackToMain} />;
       case 'career':
-        return <CareerGuide onBack={handleBackToDashboard} />;
+        return <CareerGuide onBack={handleBackToMain} />;
       case 'pdf':
-        return <PDFSummarizer onBack={handleBackToDashboard} />;
+        return <PDFSummarizer onBack={handleBackToMain} />;
       case 'codelab':
-        return <CodeLab onBack={handleBackToDashboard} />;
+        return <CodeLab onBack={handleBackToMain} />;
       default:
-        return <WelcomeDashboard onSelectMode={handleSelectMode} />;
+        return <AIChat selectedMode={selectedMode} />;
     }
   };
 
@@ -78,8 +87,17 @@ const Index = () => {
     return <LoadingScreen onLoadingComplete={handleLoadingComplete} />;
   }
 
-  // Full screen components (dashboard and codelab)
-  if (activeTab === 'dashboard' || activeTab === 'codelab') {
+  // Show dashboard only once at startup
+  if (showDashboard && activeTab === 'dashboard') {
+    return (
+      <div className="min-h-screen bg-background">
+        {renderActiveComponent()}
+      </div>
+    );
+  }
+
+  // Full screen components (codelab)
+  if (activeTab === 'codelab') {
     return (
       <div className="min-h-screen bg-background">
         {renderActiveComponent()}
@@ -89,13 +107,12 @@ const Index = () => {
 
   // Main app layout with sidebar/navigation
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex w-full">
       {/* Desktop Sidebar */}
       <DesktopSidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         dueCardsCount={dueCardsCount}
-        onBackToDashboard={handleBackToDashboard}
       />
 
       {/* Main Content */}
@@ -104,11 +121,11 @@ const Index = () => {
         <div className="hidden md:block">
           <Navigation 
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
             dueCardsCount={dueCardsCount}
             isDarkMode={isDarkMode}
             onToggleDarkMode={handleToggleDarkMode}
-            onBackToDashboard={handleBackToDashboard}
+            onBackToDashboard={handleBackToMain}
           />
         </div>
 
@@ -122,9 +139,8 @@ const Index = () => {
         {/* Mobile Bottom Navigation */}
         <BottomNavigation
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           dueCardsCount={dueCardsCount}
-          onBackToDashboard={handleBackToDashboard}
         />
       </div>
     </div>

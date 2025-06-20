@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,9 @@ import {
   ArrowLeft,
   Bot,
   User,
-  Download
+  Download,
+  Save,
+  FileText
 } from 'lucide-react';
 import { openAIService } from '@/lib/openai';
 import { extractTextFromImage } from '@/lib/ocr';
@@ -71,7 +74,10 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
     setIsAnalyzingImage(true);
 
     try {
-      const analysisText = await extractTextFromImage(file);
+      const analysisResult = await extractTextFromImage(file);
+      
+      // Handle the OCRResult properly
+      const analysisText = typeof analysisResult === 'string' ? analysisResult : analysisResult?.text || '';
       
       if (analysisText && analysisText.trim()) {
         setInput(prev => prev + (prev ? '\n\n' : '') + `[Image content: ${analysisText}]`);
@@ -152,32 +158,39 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   };
 
-  const handleExportChat = () => {
-    if (messages.length === 0) {
-      toast({
-        title: "Nothing to export",
-        description: "Start a conversation first!",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const chatContent = messages.map(msg => 
-      `**${msg.role === 'user' ? 'You' : 'AI'}**: ${msg.content}`
-    ).join('\n\n');
-
-    const modeTitle = selectedMode ? selectedMode.charAt(0).toUpperCase() + selectedMode.slice(1) : 'AI';
-    exportToPDF(chatContent, `${modeTitle}_Chat_Session.pdf`);
+  const saveToNotes = (content: string, messageId: string) => {
+    const existingNotes = JSON.parse(localStorage.getItem('mentora_notes') || '[]');
+    const newNote = {
+      id: crypto.randomUUID(),
+      title: `AI Response - ${new Date().toLocaleDateString()}`,
+      content: content,
+      tags: ['AI Generated', selectedMode || 'AI Chat'],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    existingNotes.unshift(newNote);
+    localStorage.setItem('mentora_notes', JSON.stringify(existingNotes));
     
     toast({
-      title: "Chat exported",
-      description: "Your conversation has been saved as PDF."
+      title: "Saved to Notes",
+      description: "AI response has been saved to your notes."
+    });
+  };
+
+  const exportResponseToPDF = (content: string, messageId: string) => {
+    const modeTitle = selectedMode ? selectedMode.charAt(0).toUpperCase() + selectedMode.slice(1) : 'AI';
+    const timestamp = new Date().toLocaleDateString();
+    exportToPDF(content, `${modeTitle}_Response_${timestamp}.pdf`);
+    
+    toast({
+      title: "PDF Exported",
+      description: "AI response has been exported as PDF."
     });
   };
 
   const handleModeSelect = (mode: string) => {
     setSelectedMode(mode);
-    // Clear messages when switching modes for better UX
     setMessages([]);
   };
 
@@ -198,12 +211,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
             </Button>
           )}
           <h1 className="text-2xl font-bold">AI Study Assistant</h1>
-          {messages.length > 0 && (
-            <Button variant="outline" onClick={handleExportChat}>
-              <Download className="w-4 h-4 mr-2" />
-              Export Chat
-            </Button>
-          )}
+          <div className="w-20"></div>
         </div>
 
         {/* Study Mode Selector */}
@@ -252,6 +260,30 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                             <div className="text-xs opacity-70 mt-2">
                               {message.timestamp.toLocaleTimeString()}
                             </div>
+                            
+                            {/* Individual Response Actions */}
+                            {message.role === 'assistant' && (
+                              <div className="flex space-x-2 mt-3">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => saveToNotes(message.content, message.id)}
+                                  className="h-8 px-3 text-xs"
+                                >
+                                  <Save className="w-3 h-3 mr-1" />
+                                  Save to Notes
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => exportResponseToPDF(message.content, message.id)}
+                                  className="h-8 px-3 text-xs"
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Export PDF
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
