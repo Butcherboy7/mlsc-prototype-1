@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,22 +18,25 @@ import {
   Save,
   Copy,
   Download,
-  ArrowLeft
+  ArrowLeft,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 import { useVoice } from '@/hooks/useVoice';
 import { openAIService } from '@/lib/openai';
 import { extractTextFromPDF, exportToPDF } from '@/lib/pdf';
+import { extractTextFromImage } from '@/lib/ocr';
 
 interface Message {
   id: string;
   type: 'user' | 'ai' | 'system';
   content: string;
   timestamp: Date;
-  pdfSummary?: {
-    fileName: string;
-    actualContent: string;
-    shortSummary: string;
-    detailedSummary: string;
+  imageUrl?: string;
+  ocrResult?: {
+    text: string;
+    detectedType: string;
+    confidence: number;
   };
 }
 
@@ -44,19 +46,21 @@ interface AIChatProps {
 }
 
 const studyModes = [
-  { id: 'maths', label: 'Maths Tutor', icon: Calculator, prompt: 'You are an expert mathematics tutor. Help students understand mathematical concepts, solve problems step-by-step, and provide clear explanations with examples.' },
-  { id: 'coding', label: 'Code Mentor', icon: Code, prompt: 'You are a programming expert and mentor. Help with coding problems, explain programming concepts, review code, and guide best practices across multiple programming languages.' },
-  { id: 'business', label: 'Business Coach', icon: Briefcase, prompt: 'You are a business strategy coach. Help with startup advice, business planning, marketing strategies, financial planning, and entrepreneurship guidance.' },
-  { id: 'legal', label: 'Legal Advisor', icon: Scale, prompt: 'You are a legal education advisor. Help explain legal concepts, constitutional law, case studies, and legal principles for educational purposes.' },
-  { id: 'literature', label: 'Literature Guide', icon: BookText, prompt: 'You are a literature and writing expert. Help with literary analysis, creative writing, critical thinking, essay writing, and understanding literary works.' }
+  { id: 'maths', label: 'Maths Tutor', icon: Calculator, prompt: 'You are an expert mathematics tutor. Help students understand mathematical concepts, solve problems step-by-step, and provide clear explanations with examples. When analyzing images with math problems, solve them step by step.' },
+  { id: 'coding', label: 'Code Mentor', icon: Code, prompt: 'You are a programming expert and mentor. Help with coding problems, explain programming concepts, review code, and guide best practices across multiple programming languages. When analyzing code from images, explain and improve it.' },
+  { id: 'business', label: 'Business Coach', icon: Briefcase, prompt: 'You are a business strategy coach. Help with startup advice, business planning, marketing strategies, financial planning, and entrepreneurship guidance. When analyzing business documents or cases from images, provide strategic insights.' },
+  { id: 'legal', label: 'Legal Advisor', icon: Scale, prompt: 'You are a legal education advisor. Help explain legal concepts, constitutional law, case studies, and legal principles for educational purposes. When analyzing legal documents from images, explain the key legal points.' },
+  { id: 'literature', label: 'Literature Guide', icon: BookText, prompt: 'You are a literature and writing expert. Help with literary analysis, creative writing, critical thinking, essay writing, and understanding literary works. When analyzing text from images, provide literary analysis and insights.' }
 ];
 
 const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const { isListening, startListening, stopListening, isSupported } = useVoice();
 
@@ -91,6 +95,92 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
       startListening((transcribedText) => {
         setCurrentMessage(prev => (prev + ' ' + transcribedText).trim());
       });
+    }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file.');
+      return;
+    }
+
+    setIsProcessingImage(true);
+    const imageUrl = URL.createObjectURL(file);
+
+    try {
+      const ocrResult = await extractTextFromImage(file);
+      
+      if (ocrResult.text.trim()) {
+        const imageMessage: Message = {
+          id: crypto.randomUUID(),
+          type: 'user',
+          content: `Uploaded image detected as ${ocrResult.detectedType} content (${ocrResult.confidence.toFixed(1)}% confidence):\n\n${ocrResult.text}`,
+          timestamp: new Date(),
+          imageUrl,
+          ocrResult
+        };
+
+        setMessages(prev => [...prev, imageMessage]);
+        
+        // Get AI response based on the detected content
+        const modeInfo = studyModes.find(m => m.id === selectedMode);
+        const contextPrompt = getContextPromptForDetectedType(ocrResult.detectedType, selectedMode);
+        
+        const aiResponse = await openAIService.chat([
+          { role: 'system', content: modeInfo?.prompt || 'You are a helpful tutor.' },
+          { role: 'user', content: `${contextPrompt}\n\nAnalyze this ${ocrResult.detectedType} content:\n${ocrResult.text}` }
+        ]);
+        
+        const aiMessage: Message = {
+          id: crypto.randomUUID(),
+          type: 'ai',
+          content: aiResponse,
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        const errorMessage: Message = {
+          id: crypto.randomUUID(),
+          type: 'system',
+          content: 'Unable to extract text from the image. Please try with a clearer image or different format.',
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error('Image processing error:', error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        type: 'system',
+        content: 'Error processing image. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsProcessingImage(false);
+    }
+
+    event.target.value = '';
+  };
+
+  const getContextPromptForDetectedType = (detectedType: string, mode: string | null): string => {
+    switch (detectedType) {
+      case 'math':
+        return 'This appears to be a mathematical problem. Please solve it step by step and explain your reasoning.';
+      case 'code':
+        return 'This appears to be code. Please analyze it, explain what it does, and suggest improvements if needed.';
+      case 'business':
+        return 'This appears to be business-related content. Please provide strategic analysis and insights.';
+      case 'legal':
+        return 'This appears to be legal content. Please explain the key legal concepts and principles involved.';
+      case 'literature':
+        return 'This appears to be literary content. Please provide analysis and interpretation.';
+      default:
+        return 'Please analyze this content and provide relevant insights based on your expertise.';
     }
   };
 
@@ -238,10 +328,29 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
           isUser 
             ? 'bg-primary text-primary-foreground' 
             : isSystem 
-            ? 'bg-blue-50 border border-blue-200 text-blue-800'
+            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200'
             : 'bg-muted'
         }`}>
-          <div className="prose prose-sm max-w-none">
+          {message.imageUrl && (
+            <div className="mb-3">
+              <img 
+                src={message.imageUrl} 
+                alt="Uploaded content" 
+                className="max-w-full h-auto rounded-lg border"
+                style={{ maxHeight: '200px' }}
+              />
+              {message.ocrResult && (
+                <div className="mt-2 text-xs opacity-75">
+                  <Badge variant="outline" className="mr-2">
+                    {message.ocrResult.detectedType}
+                  </Badge>
+                  <span>{message.ocrResult.confidence.toFixed(1)}% confidence</span>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="prose prose-sm max-w-none dark:prose-invert">
             {message.content.split('\n').map((line, i) => (
               <p key={i} className={isUser ? 'text-primary-foreground' : ''}>{line}</p>
             ))}
@@ -249,11 +358,12 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
 
           {/* AI Response Actions */}
           {!isUser && !isSystem && (
-            <div className="flex gap-2 mt-3 pt-3 border-t">
+            <div className="flex gap-2 mt-3 pt-3 border-t border-border">
               <Button 
                 size="sm" 
                 variant="outline"
                 onClick={() => exportToPDF(message.content, 'AI Response.pdf')}
+                className="text-xs"
               >
                 <Download className="w-3 h-3 mr-1" />
                 Export PDF
@@ -262,6 +372,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                 size="sm" 
                 variant="outline"
                 onClick={() => saveMessageAsNote(message.content, `AI Response - ${new Date().toLocaleDateString()}`)}
+                className="text-xs"
               >
                 <Save className="w-3 h-3 mr-1" />
                 Save as Note
@@ -270,6 +381,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                 size="sm" 
                 variant="outline"
                 onClick={() => copyToClipboard(message.content)}
+                className="text-xs"
               >
                 <Copy className="w-3 h-3 mr-1" />
                 Copy
@@ -314,7 +426,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                       {currentModeInfo.label}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Powered by OpenAI GPT-3.5 Turbo
+                      Powered by OpenAI GPT-3.5 Turbo • Image Recognition Enabled
                     </p>
                   </div>
                 </>
@@ -330,14 +442,16 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
 
       {/* Messages */}
       <Card className="flex-1 mb-4">
-        <CardContent className="p-6 h-full overflow-y-auto">
+        <CardContent className="p-4 sm:p-6 h-full overflow-y-auto">
           {messages.map(renderMessage)}
-          {isLoading && (
+          {(isLoading || isProcessingImage) && (
             <div className="flex justify-start mb-4">
               <div className="bg-muted p-4 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  <span className="text-sm">AI is thinking...</span>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">
+                    {isProcessingImage ? 'Processing image...' : 'AI is thinking...'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -356,7 +470,8 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                 value={currentMessage}
                 onChange={(e) => setCurrentMessage(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
-                disabled={isLoading}
+                disabled={isLoading || isProcessingImage}
+                className="flex-1"
               />
               
               <input
@@ -367,11 +482,30 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                 className="hidden"
               />
               
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+              
+              <Button
+                variant="outline"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isLoading || isProcessingImage}
+                title="Upload image for AI analysis"
+                size="sm"
+              >
+                <ImageIcon className="w-4 h-4" />
+              </Button>
+              
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
+                disabled={isLoading || isProcessingImage}
                 title="Upload PDF, TXT, or DOCX file"
+                size="sm"
               >
                 <Upload className="w-4 h-4" />
               </Button>
@@ -380,9 +514,10 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
                 <Button
                   variant="outline"
                   onClick={handleVoiceInput}
-                  disabled={isLoading}
+                  disabled={isLoading || isProcessingImage}
                   title={isListening ? "Stop listening" : "Start voice input"}
-                  className={isListening ? "bg-red-50 border-red-200" : ""}
+                  className={isListening ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800" : ""}
+                  size="sm"
                 >
                   {isListening ? <MicOff className="w-4 h-4 text-red-600" /> : <Mic className="w-4 h-4" />}
                 </Button>
@@ -391,7 +526,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode, onBack }) => {
             
             <Button 
               onClick={handleSendMessage} 
-              disabled={isLoading || !currentMessage.trim()}
+              disabled={isLoading || isProcessingImage || !currentMessage.trim()}
             >
               <Send className="w-4 h-4" />
             </Button>

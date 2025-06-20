@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -378,12 +379,16 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 dark:from-slate-950 dark:via-purple-950 dark:to-slate-950">
       {/* Header */}
       <div className="border-b bg-black/20 backdrop-blur-sm p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <Button variant="outline" onClick={onBack} className="border-white/20 text-white hover:bg-white/10">
+            <Button 
+              variant="outline" 
+              onClick={onBack} 
+              className="border-white/20 text-white hover:bg-white/10 bg-white/5"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -392,15 +397,15 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                 <Terminal className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white">CodeLab</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-white">CodeLab</h1>
                 <p className="text-sm text-gray-300">Interactive Coding Environment</p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
             <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
-              <SelectTrigger className="w-48 bg-white/10 border-white/20 text-white">
+              <SelectTrigger className="w-full sm:w-48 bg-white/10 border-white/20 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -412,31 +417,41 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
               </SelectContent>
             </Select>
 
-            <Button onClick={runCode} disabled={isRunning} className="bg-green-600 hover:bg-green-700">
-              {isRunning ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Play className="w-4 h-4 mr-2" />
-              )}
-              Run Code
-            </Button>
+            <div className="flex space-x-2 w-full sm:w-auto">
+              <Button 
+                onClick={runCode} 
+                disabled={isRunning} 
+                className="bg-green-600 hover:bg-green-700 text-white flex-1 sm:flex-none"
+              >
+                {isRunning ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
+                Run Code
+              </Button>
 
-            <Button variant="outline" onClick={() => setIsChatOpen(!isChatOpen)} className="border-white/20 text-white hover:bg-white/10">
-              <Sparkles className="w-4 h-4 mr-2" />
-              AI Assistant
-            </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setIsChatOpen(!isChatOpen)} 
+                className="border-white/20 text-white hover:bg-white/10 bg-white/5"
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">AI Assistant</span>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="flex h-[calc(100vh-80px)]">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-80px)]">
         {/* Main Editor Area */}
-        <div className={`flex-1 flex flex-col ${isChatOpen ? 'mr-80' : ''}`}>
+        <div className={`flex-1 flex flex-col ${isChatOpen ? 'lg:mr-80' : ''}`}>
           {/* Code Editor */}
           <div className="flex-1 p-4">
             <Card className="h-full bg-black/40 border-white/10 backdrop-blur-sm">
               <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                   <CardTitle className="flex items-center text-white">
                     <Code className="w-4 h-4 mr-2" />
                     Code Editor
@@ -445,11 +460,21 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                     </div>
                   </CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => {/* downloadCode */}} className="border-white/20 text-white hover:bg-white/10">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={downloadCode} 
+                      className="border-white/20 text-white hover:bg-white/10 bg-white/5"
+                    >
                       <Download className="w-3 h-3 mr-1" />
                       Download
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => {/* saveToNotes */}} className="border-white/20 text-white hover:bg-white/10">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={saveToNotes} 
+                      className="border-white/20 text-white hover:bg-white/10 bg-white/5"
+                    >
                       <Save className="w-3 h-3 mr-1" />
                       Save
                     </Button>
@@ -460,7 +485,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                 <Textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="h-full min-h-[400px] font-mono text-sm border-0 resize-none focus:ring-0 bg-transparent text-white placeholder-gray-400"
+                  className="h-full min-h-[300px] sm:min-h-[400px] font-mono text-sm border-0 resize-none focus:ring-0 bg-transparent text-white placeholder-gray-400"
                   placeholder="Write your code here..."
                 />
               </CardContent>
@@ -468,7 +493,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
           </div>
 
           {/* Output Section */}
-          <div className="h-64 p-4 pt-0">
+          <div className="h-48 sm:h-64 p-4 pt-0">
             <Card className="h-full bg-black/60 border-white/10 backdrop-blur-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm text-white flex items-center">
@@ -478,7 +503,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0 h-full">
-                <div className="h-full min-h-[120px] p-4 bg-black/80 text-green-400 font-mono text-sm overflow-auto whitespace-pre-wrap">
+                <div className="h-full min-h-[100px] sm:min-h-[120px] p-4 bg-black/80 text-green-400 font-mono text-sm overflow-auto whitespace-pre-wrap">
                   {output || '🎯 Click "Run Code" to execute your program and see the output here...\n\n💡 Tips:\n- Use console.log() in JavaScript\n- Use print() in Python\n- Use cout in C++'}
                 </div>
               </CardContent>
@@ -488,15 +513,22 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
 
         {/* AI Chat Sidebar */}
         {isChatOpen && (
-          <div className="w-80 border-l border-white/10 bg-black/20 backdrop-blur-sm flex flex-col">
+          <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/20 backdrop-blur-sm flex flex-col">
             <div className="p-4 border-b border-white/10">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-white flex items-center">
                   <Sparkles className="w-4 h-4 mr-2" />
                   AI Coding Assistant
                 </h3>
-                <Button variant="ghost" size="sm" onClick={() => setIsChatOpen(false)} className="text-white hover:bg-white/10">
-                  <ChevronRight className="w-4 h-4" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsChatOpen(false)} 
+                  className="text-white hover:bg-white/10"
+                >
+                  <ChevronRight className="w-4 h-4 lg:hidden" />
+                  <span className="lg:hidden ml-1">Close</span>
+                  <ChevronRight className="w-4 h-4 hidden lg:block" />
                 </Button>
               </div>
               <p className="text-sm text-gray-300 mt-2">
@@ -504,7 +536,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
               </p>
             </div>
 
-            <div className="flex-1 overflow-auto p-4 space-y-4">
+            <div className="flex-1 overflow-auto p-4 space-y-4 max-h-64 lg:max-h-none">
               {chatMessages.length === 0 ? (
                 <div className="text-center text-gray-400">
                   <MessageCircle className="w-8 h-8 mx-auto mb-2" />
@@ -545,7 +577,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Ask about your code..."
-                  className="min-h-[60px] resize-none bg-white/10 border-white/20 text-white placeholder-gray-400"
+                  className="min-h-[60px] resize-none bg-white/10 border-white/20 text-white placeholder-gray-400 text-sm"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -553,7 +585,11 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
                     }
                   }}
                 />
-                <Button onClick={askAI} disabled={isAskingAI || !chatInput.trim()} className="bg-blue-600 hover:bg-blue-700">
+                <Button 
+                  onClick={askAI} 
+                  disabled={isAskingAI || !chatInput.trim()} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
                   <MessageCircle className="w-4 h-4" />
                 </Button>
               </div>
