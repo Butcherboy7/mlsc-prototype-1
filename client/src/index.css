@@ -209,6 +209,22 @@
   }
 
   /* Mobile responsive improvements */
+  .mobile-optimized {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+  }
+
+  .mobile-overflow-wrap {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .mobile-text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
   @media (max-width: 768px) {
     .math-block {
       font-size: 0.9rem;
@@ -223,6 +239,11 @@
     .definition, .example, .analogy {
       padding: 0.75rem;
       margin: 0.5rem 0;
+    }
+
+    .mobile-text-sm {
+      font-size: 0.8rem;
+      line-height: 1.2rem;
     }
   }
 }

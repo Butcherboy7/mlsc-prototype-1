@@ -46,7 +46,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadingComplete }) => {
             {text}
             <span className="animate-pulse">|</span>
           </h1>
-          <p className="text-xl text-white/80">Your AI Study Companion</p>
+          <p className="text-xl text-white/80">Your AI Edu Buddy</p>
         </div>
 
         <div className="flex justify-center space-x-2">
