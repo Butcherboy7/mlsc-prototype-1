@@ -1,3 +1,4 @@
+
 import { Message } from '../types';
 
 interface OpenAIResponse {
@@ -11,11 +12,24 @@ interface OpenAIResponse {
 // Context memory for each session
 const contextStore = new Map<string, Message[]>();
 
-const API_KEY = 'your-openai-api-key-here';
 const BASE_URL = 'https://api.openai.com/v1';
 
 export const openAIService = {
+  getApiKey(): string | null {
+    return localStorage.getItem('openai_api_key');
+  },
+
+  setApiKey(apiKey: string): void {
+    localStorage.setItem('openai_api_key', apiKey);
+  },
+
   async chat(messages: Message[]): Promise<string> {
+    const API_KEY = this.getApiKey();
+    
+    if (!API_KEY || API_KEY === 'your-openai-api-key-here') {
+      return 'Please configure your OpenAI API key in the settings to use AI features.';
+    }
+
     try {
       const response = await fetch(`${BASE_URL}/chat/completions`, {
         method: 'POST',
@@ -120,6 +134,25 @@ export const openAIService = {
 
     const messages: Message[] = [
       { role: 'system', content: 'You are an expert educator. Create well-structured, comprehensive study notes with clear headings, bullet points, and examples.' },
+      { role: 'user', content: prompt }
+    ];
+
+    return await this.chat(messages);
+  },
+
+  async generateNote(topic: string): Promise<{ title: string; content: string }> {
+    const content = await this.generateNotes(topic);
+    return {
+      title: topic,
+      content: content
+    };
+  },
+
+  async helpWithCode(code: string, language: string, problem: string): Promise<string> {
+    const prompt = `Help with this ${language} code issue: ${problem}\n\nCode:\n\`\`\`${language}\n${code}\n\`\`\``;
+    
+    const messages: Message[] = [
+      { role: 'system', content: 'You are a skilled programming mentor. Help debug code, explain issues, and provide solutions with clear explanations.' },
       { role: 'user', content: prompt }
     ];
 

@@ -1,6 +1,5 @@
 
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 export const extractTextFromPDF = async (file: File): Promise<string> => {
   try {
@@ -26,17 +25,17 @@ export const exportToPDF = async (content: string, filename: string = 'document.
     const pdf = new jsPDF();
     
     // Set colors based on mode
-    const textColor = isDarkMode ? [255, 255, 255] : [0, 0, 0];
-    const headerColor = isDarkMode ? [100, 150, 255] : [30, 100, 200];
-    const backgroundColor = isDarkMode ? [40, 40, 40] : [255, 255, 255];
+    const textColor: [number, number, number] = isDarkMode ? [255, 255, 255] : [0, 0, 0];
+    const headerColor: [number, number, number] = isDarkMode ? [100, 150, 255] : [30, 100, 200];
+    const backgroundColor: [number, number, number] = isDarkMode ? [40, 40, 40] : [255, 255, 255];
     
     // Set background
-    pdf.setFillColor(...backgroundColor);
+    pdf.setFillColor(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
     pdf.rect(0, 0, pdf.internal.pageSize.width, pdf.internal.pageSize.height, 'F');
     
     // Add header
     pdf.setFontSize(20);
-    pdf.setTextColor(...headerColor);
+    pdf.setTextColor(headerColor[0], headerColor[1], headerColor[2]);
     pdf.setFont('helvetica', 'bold');
     pdf.text(filename.replace('.pdf', ''), 15, 25);
     
@@ -51,7 +50,7 @@ export const exportToPDF = async (content: string, filename: string = 'document.
     
     // Add content
     pdf.setFontSize(12);
-    pdf.setTextColor(...textColor);
+    pdf.setTextColor(textColor[0], textColor[1], textColor[2]);
     pdf.setFont('helvetica', 'normal');
     
     const lines = pdf.splitTextToSize(processedContent, 180);
@@ -60,7 +59,7 @@ export const exportToPDF = async (content: string, filename: string = 'document.
     lines.forEach((line: string) => {
       if (yPosition > 270) {
         pdf.addPage();
-        pdf.setFillColor(...backgroundColor);
+        pdf.setFillColor(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
         pdf.rect(0, 0, pdf.internal.pageSize.width, pdf.internal.pageSize.height, 'F');
         yPosition = 20;
       }
@@ -69,28 +68,29 @@ export const exportToPDF = async (content: string, filename: string = 'document.
       if (line.startsWith('# ')) {
         pdf.setFontSize(16);
         pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(...headerColor);
+        pdf.setTextColor(headerColor[0], headerColor[1], headerColor[2]);
         pdf.text(line.substring(2), 15, yPosition);
         yPosition += 10;
       } else if (line.startsWith('## ')) {
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(...headerColor);
+        pdf.setTextColor(headerColor[0], headerColor[1], headerColor[2]);
         pdf.text(line.substring(3), 15, yPosition);
         yPosition += 8;
       } else if (line.startsWith('```')) {
         pdf.setFontSize(10);
         pdf.setFont('courier', 'normal');
-        pdf.setTextColor(isDarkMode ? 200 : 60, isDarkMode ? 200 : 60, isDarkMode ? 200 : 60);
+        const codeColor = isDarkMode ? 200 : 60;
+        pdf.setTextColor(codeColor, codeColor, codeColor);
       } else if (line.startsWith('**') && line.endsWith('**')) {
         pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(...textColor);
+        pdf.setTextColor(textColor[0], textColor[1], textColor[2]);
         pdf.text(line.replace(/\*\*/g, ''), 15, yPosition);
         yPosition += 6;
       } else {
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(...textColor);
+        pdf.setTextColor(textColor[0], textColor[1], textColor[2]);
         pdf.text(line, 15, yPosition);
         yPosition += 6;
       }

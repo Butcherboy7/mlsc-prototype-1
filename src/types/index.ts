@@ -1,6 +1,11 @@
 
 export type StudyMode = 'maths' | 'coding' | 'business' | 'law' | 'literature';
 
+export interface Message {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export interface Flashcard {
   id: string;
   question: string;

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface StudyModeSelectorProps {
   selectedMode: string | null;
-  onModeSelect: (mode: string) => void;
+  onModeSelect?: (mode: string) => void;
   onModeChange: (mode: string) => void;
 }
 
@@ -100,7 +100,7 @@ const StudyModeSelector: React.FC<StudyModeSelectorProps> = ({
                 key={mode.id}
                 variant="ghost"
                 className="h-auto p-4 flex flex-col items-center space-y-3 hover:bg-muted"
-                onClick={() => onModeSelect(mode.id)}
+                onClick={() => onModeSelect ? onModeSelect(mode.id) : onModeChange(mode.id)}
               >
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${mode.color} flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
