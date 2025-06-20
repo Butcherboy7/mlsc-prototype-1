@@ -107,7 +107,6 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
   const handleSend = async () => {
     if (!input.trim() || isLoading || !selectedMode) return;
 
-    const sessionId = generateSessionId();
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -115,16 +114,25 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await geminiService.contextualChat(
-        userMessage.content,
-        selectedMode,
-        sessionId
-      );
+      // Convert messages to Gemini format for full conversation history
+      const geminiMessages = [
+        {
+          role: 'system' as const,
+          content: geminiService.getSystemMessage(selectedMode)
+        },
+        ...updatedMessages.map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.content
+        }))
+      ];
+
+      const response = await geminiService.chat(geminiMessages, true);
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -243,44 +251,46 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                   )}
                   
                   {messages.map((message) => (
-                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] rounded-lg p-4 ${
+                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} px-2`}>
+                      <div className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 break-words ${
                         message.role === 'user' 
                           ? 'bg-primary text-primary-foreground' 
                           : 'bg-muted'
                       }`}>
                         <div className="flex items-start space-x-2">
                           {message.role === 'assistant' ? (
-                            <Bot className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                            <Bot className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0" />
                           ) : (
-                            <User className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                            <User className="w-4 h-4 sm:w-5 sm:h-5 mt-0.5 flex-shrink-0" />
                           )}
-                          <div className="flex-1">
-                            <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                          <div className="flex-1 min-w-0 overflow-hidden">
+                            <div className="whitespace-pre-wrap text-sm break-words overflow-wrap-anywhere">{message.content}</div>
                             <div className="text-xs opacity-70 mt-2">
                               {message.timestamp.toLocaleTimeString()}
                             </div>
                             
                             {/* Individual Response Actions */}
                             {message.role === 'assistant' && (
-                              <div className="flex space-x-2 mt-3">
+                              <div className="flex flex-wrap gap-2 mt-3">
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => saveToNotes(message.content, message.id)}
-                                  className="h-8 px-3 text-xs"
+                                  className="h-8 px-2 sm:px-3 text-xs"
                                 >
                                   <Save className="w-3 h-3 mr-1" />
-                                  Save to Notes
+                                  <span className="hidden sm:inline">Save to Notes</span>
+                                  <span className="sm:hidden">Save</span>
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => exportResponseToPDF(message.content, message.id)}
-                                  className="h-8 px-3 text-xs"
+                                  className="h-8 px-2 sm:px-3 text-xs"
                                 >
                                   <FileText className="w-3 h-3 mr-1" />
-                                  Export PDF
+                                  <span className="hidden sm:inline">Export PDF</span>
+                                  <span className="sm:hidden">PDF</span>
                                 </Button>
                               </div>
                             )}

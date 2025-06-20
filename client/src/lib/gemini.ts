@@ -21,7 +21,7 @@ export const geminiService = {
     return GEMINI_API_KEY;
   },
 
-  async chat(messages: Message[]): Promise<string> {
+  async chat(messages: Message[], includeHistory: boolean = true): Promise<string> {
     try {
       // Convert messages to Gemini format
       const prompt = messages.map(msg => {

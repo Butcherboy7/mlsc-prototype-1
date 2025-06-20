@@ -191,19 +191,19 @@ const Notes: React.FC<NotesProps> = ({ onBack }) => {
                   AI Note Generator
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="pl-4 pr-6 py-6 space-y-4">
                 <div className="space-y-3">
                   <Input
                     placeholder="Enter a topic for AI-generated notes..."
                     value={generateTopic}
                     onChange={(e) => setGenerateTopic(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && generateAINote()}
-                    className="rounded-lg bg-background dark:bg-background border-input dark:border-input h-11"
+                    className="ml-2 mr-2 rounded-xl p-3 bg-background dark:bg-background border-input dark:border-input h-11"
                   />
                   <Button 
                     onClick={generateAINote} 
                     disabled={isGenerating || !generateTopic.trim()}
-                    className="w-full h-11 rounded-lg"
+                    className="ml-2 mr-2 w-auto flex-1 h-11 rounded-xl"
                   >
                     {isGenerating ? (
                       <>

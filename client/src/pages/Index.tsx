@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navigation from '@/components/Navigation';
 import BottomNavigation from '@/components/BottomNavigation';
 import DesktopSidebar from '@/components/DesktopSidebar';
@@ -132,7 +133,20 @@ const Index = () => {
         {/* Content Area */}
         <main className="flex-1 p-4 pb-20 md:pb-4 overflow-auto">
           <div className="max-w-4xl mx-auto">
-            {renderActiveComponent()}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab + (selectedMode || '')}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ 
+                  duration: 0.3,
+                  ease: "easeInOut"
+                }}
+              >
+                {renderActiveComponent()}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
 
