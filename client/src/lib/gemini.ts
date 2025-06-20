@@ -1,10 +1,11 @@
-
 import { Message } from '../types';
 
-interface OpenAIResponse {
-  choices: Array<{
-    message: {
-      content: string;
+interface GeminiResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{
+        text: string;
+      }>;
     };
   }>;
 }
@@ -12,50 +13,55 @@ interface OpenAIResponse {
 // Context memory for each session
 const contextStore = new Map<string, Message[]>();
 
-const BASE_URL = 'https://api.openai.com/v1';
+const GEMINI_API_KEY = 'AIzaSyDc89EvWZNp0Z6VTiKZbGopHoebZEVEWYY';
+const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
-export const openAIService = {
-  getApiKey(): string | null {
-    return localStorage.getItem('openai_api_key');
-  },
-
-  setApiKey(apiKey: string): void {
-    localStorage.setItem('openai_api_key', apiKey);
+export const geminiService = {
+  getApiKey(): string {
+    return GEMINI_API_KEY;
   },
 
   async chat(messages: Message[]): Promise<string> {
-    const API_KEY = this.getApiKey();
-    
-    if (!API_KEY || API_KEY === 'your-openai-api-key-here') {
-      return 'Please configure your OpenAI API key in the settings to use AI features.';
-    }
-
     try {
-      const response = await fetch(`${BASE_URL}/chat/completions`, {
+      // Convert messages to Gemini format
+      const prompt = messages.map(msg => {
+        if (msg.role === 'system') {
+          return `System: ${msg.content}`;
+        } else if (msg.role === 'user') {
+          return `User: ${msg.content}`;
+        } else {
+          return `Assistant: ${msg.content}`;
+        }
+      }).join('\n\n');
+
+      const response = await fetch(`${BASE_URL}/models/gemini-pro:generateContent?key=${this.getApiKey()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4',
-          messages: messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-          })),
-          max_tokens: 1000,
-          temperature: 0.7,
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1000,
+          }
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status}`);
+        throw new Error(`Gemini API error: ${response.status}`);
       }
 
-      const data: OpenAIResponse = await response.json();
-      return data.choices[0]?.message?.content || 'No response generated.';
+      const data: GeminiResponse = await response.json();
+      return data.candidates[0]?.content?.parts[0]?.text || 'No response generated.';
     } catch (error) {
-      console.error('OpenAI API Error:', error);
+      console.error('Gemini API Error:', error);
       return 'I apologize, but I encountered an error. Please try again later.';
     }
   },

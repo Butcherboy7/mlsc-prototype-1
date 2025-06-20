@@ -15,7 +15,7 @@ import {
   Save,
   FileText
 } from 'lucide-react';
-import { openAIService } from '@/lib/openai';
+import { geminiService } from '@/lib/gemini';
 import { extractTextFromImage } from '@/lib/ocr';
 import { exportToPDF } from '@/lib/pdf';
 import StudyModeSelector from '@/components/StudyModeSelector';
@@ -120,7 +120,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
     setIsLoading(true);
 
     try {
-      const response = await openAIService.contextualChat(
+      const response = await geminiService.contextualChat(
         userMessage.content,
         selectedMode,
         sessionId

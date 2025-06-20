@@ -11,7 +11,7 @@ import {
   Loader2,
   ArrowLeft
 } from 'lucide-react';
-import { openAIService } from '@/lib/openai';
+import { geminiService } from '@/lib/gemini';
 import { extractTextFromPDF, exportToPDF } from '@/lib/pdf';
 
 interface PDFSummarizerProps {
@@ -41,8 +41,8 @@ const PDFSummarizer: React.FC<PDFSummarizerProps> = ({ onBack }) => {
       const extractedContent = await extractTextFromPDF(file);
       
       const [shortSummary, detailedSummary] = await Promise.all([
-        openAIService.summarizePDF(extractedContent, 'short'),
-        openAIService.summarizePDF(extractedContent, 'detailed')
+        geminiService.summarizePDF(extractedContent, 'short'),
+        geminiService.summarizePDF(extractedContent, 'detailed')
       ]);
 
       setSummaryData({

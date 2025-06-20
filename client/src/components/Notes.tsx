@@ -15,7 +15,7 @@ import {
   ArrowLeft,
   Sparkles
 } from 'lucide-react';
-import { openAIService } from '@/lib/openai';
+import { geminiService } from '@/lib/gemini';
 import { exportToPDF } from '@/lib/pdf';
 
 interface Note {
@@ -82,7 +82,7 @@ const Notes: React.FC<NotesProps> = ({ onBack }) => {
 
     setIsGenerating(true);
     try {
-      const result = await openAIService.generateNote(generateTopic);
+      const result = await geminiService.generateNote(generateTopic);
       
       const newNote: Note = {
         id: crypto.randomUUID(),

@@ -16,7 +16,7 @@ import {
   Sparkles,
   RefreshCw
 } from 'lucide-react';
-import { openAIService } from '@/lib/openai';
+import { geminiService } from '@/lib/gemini';
 import { pistonService } from '@/lib/piston';
 
 interface CodeLabProps {
@@ -311,7 +311,7 @@ const CodeLab: React.FC<CodeLabProps> = ({ onBack }) => {
     setIsAskingAI(true);
 
     try {
-      const aiResponse = await openAIService.helpWithCode(code, selectedLanguage, question);
+      const aiResponse = await geminiService.helpWithCode(code, selectedLanguage, question);
       
       const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
