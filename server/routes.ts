@@ -13,60 +13,45 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Institution Mode routes
   
-  // Get all universities/colleges from Indian APIs
+  // Get all universities from hipolabs API
   app.get('/api/institutions/universities', async (req, res) => {
     try {
       const country = (req.query.country as string) || 'India';
-      const state = req.query.state as string;
       
       if (country === 'India') {
-        // Use Indian Colleges API for comprehensive data
-        let apiUrl = 'https://colleges-api.onrender.com/colleges';
-        if (state) {
-          apiUrl += `/${encodeURIComponent(state)}`;
-        }
-        apiUrl += '?limit=100'; // Get more results
-        
-        const response = await fetch(apiUrl);
+        // Use hipolabs API for comprehensive university data
+        const response = await fetch('https://universities.hipolabs.com/search?country=India');
         if (response.ok) {
-          const data = await response.json() as any;
-          const formattedColleges = data.colleges?.map((college: any, index: number) => ({
+          const universities = await response.json() as any[];
+          const formattedUniversities = universities.map((uni: any, index: number) => ({
             id: index + 1,
-            name: college.Name,
-            country: 'India',
-            state: college.State,
-            city: college.City,
-            address: `${college.Address_line1 || ''} ${college.Address_line2 || ''}`.trim(),
-            type: 'college' // We'll determine this from the name
-          })) || [];
+            name: uni.name,
+            country: uni.country,
+            state: uni['state-province'] || 'Unknown',
+            city: uni['state-province'] || 'Unknown',
+            domains: uni.domains || [],
+            web_pages: uni.web_pages || [],
+            alpha_two_code: uni.alpha_two_code
+          }));
           
-          return res.json(formattedColleges);
-        }
-        
-        // Fallback to CollegeAPI for engineering/medical colleges
-        try {
-          const engResponse = await fetch('https://college-api-college-api.onrender.com/engineering_colleges');
-          if (engResponse.ok) {
-            const engData = await engResponse.json() as any[];
-            const formattedEngColleges = engData.map((college: any, index: number) => ({
-              id: index + 1000, // Offset to avoid ID conflicts
-              name: college.college_name || college.name,
-              country: 'India',
-              state: college.state,
-              city: college.city,
-              type: 'engineering'
-            }));
-            return res.json(formattedEngColleges);
-          }
-        } catch (e) {
-          // Continue to fallback
+          return res.json(formattedUniversities);
         }
       } else {
-        // Use YCD API for other countries
-        const response = await fetch(`https://api.ycd.dev/universities?country=${country}`);
+        // Use hipolabs API for other countries
+        const response = await fetch(`https://universities.hipolabs.com/search?country=${country}`);
         if (response.ok) {
-          const universities = await response.json();
-          return res.json(universities);
+          const universities = await response.json() as any[];
+          const formattedUniversities = universities.map((uni: any, index: number) => ({
+            id: index + 1,
+            name: uni.name,
+            country: uni.country,
+            state: uni['state-province'] || 'Unknown',
+            city: uni['state-province'] || 'Unknown',
+            domains: uni.domains || [],
+            web_pages: uni.web_pages || [],
+            alpha_two_code: uni.alpha_two_code
+          }));
+          return res.json(formattedUniversities);
         }
       }
       
@@ -84,104 +69,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get courses by university
+  // Get university course data in the specified format
   app.get('/api/institutions/universities/:universityId/courses', async (req, res) => {
     try {
       const universityId = parseInt(req.params.universityId);
       const universityName = req.query.name as string || '';
-      const universityType = req.query.type as string || '';
+      const universityLocation = req.query.location as string || 'Unknown';
       
-      // Generate courses based on university type and name
+      // Standard semester structure
+      const standardSemesters = [
+        { "code": "1-1", "syllabus": [] },
+        { "code": "1-2", "syllabus": [] },
+        { "code": "2-1", "syllabus": [] },
+        { "code": "2-2", "syllabus": [] },
+        { "code": "3-1", "syllabus": [] },
+        { "code": "3-2", "syllabus": [] },
+        { "code": "4-1", "syllabus": [] },
+        { "code": "4-2", "syllabus": [] }
+      ];
+      
+      // Determine university type from name
+      const name = universityName.toLowerCase();
       let courses = [];
       
-      // Determine university type from name if not provided
-      const name = universityName.toLowerCase();
-      let detectedType = universityType;
-      
-      if (!detectedType) {
-        if (name.includes('iit') || name.includes('indian institute of technology')) {
-          detectedType = 'engineering';
-        } else if (name.includes('iim') || name.includes('indian institute of management')) {
-          detectedType = 'management';
-        } else if (name.includes('aiims') || name.includes('medical') || name.includes('hospital')) {
-          detectedType = 'medical';
-        } else if (name.includes('engineering') || name.includes('technology') || name.includes('polytechnic')) {
-          detectedType = 'engineering';
-        } else if (name.includes('management') || name.includes('business')) {
-          detectedType = 'management';
-        } else if (name.includes('law')) {
-          detectedType = 'law';
-        } else if (name.includes('pharmacy')) {
-          detectedType = 'pharmacy';
-        } else if (name.includes('dental')) {
-          detectedType = 'dental';
-        } else if (name.includes('architecture')) {
-          detectedType = 'architecture';
-        } else {
-          detectedType = 'general';
-        }
+      if (name.includes('iit') || name.includes('indian institute of technology')) {
+        courses = [
+          {
+            "name": "Computer Science Engineering",
+            "degree": "B.Tech",
+            "departments": ["CSE", "AI & ML", "Data Science"],
+            "semesters": standardSemesters
+          },
+          {
+            "name": "Electronics and Communication Engineering",
+            "degree": "B.Tech",
+            "departments": ["ECE", "VLSI", "Embedded Systems"],
+            "semesters": standardSemesters
+          },
+          {
+            "name": "Mechanical Engineering",
+            "degree": "B.Tech",
+            "departments": ["Mechanical", "Automotive", "Manufacturing"],
+            "semesters": standardSemesters
+          }
+        ];
+      } else if (name.includes('iim') || name.includes('indian institute of management')) {
+        courses = [
+          {
+            "name": "Master of Business Administration",
+            "degree": "MBA",
+            "departments": ["Finance", "Marketing", "Operations", "HR"],
+            "semesters": standardSemesters.slice(0, 4) // MBA is typically 2 years
+          }
+        ];
+      } else if (name.includes('aiims') || name.includes('medical') || name.includes('hospital')) {
+        courses = [
+          {
+            "name": "Bachelor of Medicine and Surgery",
+            "degree": "MBBS",
+            "departments": ["General Medicine", "Surgery", "Pediatrics"],
+            "semesters": [...standardSemesters, { "code": "5-1", "syllabus": [] }, { "code": "5-2", "syllabus": [] }] // MBBS is 5.5 years
+          }
+        ];
+      } else if (name.includes('law')) {
+        courses = [
+          {
+            "name": "Bachelor of Laws",
+            "degree": "LLB",
+            "departments": ["Constitutional Law", "Criminal Law", "Corporate Law"],
+            "semesters": standardSemesters.slice(0, 6) // LLB is typically 3 years
+          }
+        ];
+      } else {
+        // Default courses for general universities
+        courses = [
+          {
+            "name": "Computer Science Engineering",
+            "degree": "B.Tech",
+            "departments": ["CSE", "IT", "Software Engineering"],
+            "semesters": standardSemesters
+          },
+          {
+            "name": "Bachelor of Business Administration",
+            "degree": "BBA",
+            "departments": ["Finance", "Marketing", "HR"],
+            "semesters": standardSemesters.slice(0, 6) // BBA is typically 3 years
+          },
+          {
+            "name": "Bachelor of Science",
+            "degree": "BSc",
+            "departments": ["Physics", "Chemistry", "Mathematics"],
+            "semesters": standardSemesters.slice(0, 6) // BSc is typically 3 years
+          }
+        ];
       }
       
-      // Generate courses based on type
-      switch (detectedType) {
-        case 'engineering':
-          courses = [
-            { id: 1, name: 'Computer Science Engineering', code: 'CSE', department: 'Engineering', universityId },
-            { id: 2, name: 'Electronics and Communication', code: 'ECE', department: 'Engineering', universityId },
-            { id: 3, name: 'Mechanical Engineering', code: 'ME', department: 'Engineering', universityId },
-            { id: 4, name: 'Civil Engineering', code: 'CE', department: 'Engineering', universityId },
-            { id: 5, name: 'Electrical Engineering', code: 'EE', department: 'Engineering', universityId },
-            { id: 6, name: 'Information Technology', code: 'IT', department: 'Engineering', universityId },
-            { id: 7, name: 'Chemical Engineering', code: 'ChE', department: 'Engineering', universityId },
-            { id: 8, name: 'Aerospace Engineering', code: 'AE', department: 'Engineering', universityId }
-          ];
-          break;
-        case 'medical':
-          courses = [
-            { id: 11, name: 'Bachelor of Medicine and Surgery', code: 'MBBS', department: 'Medical', universityId },
-            { id: 12, name: 'Bachelor of Dental Surgery', code: 'BDS', department: 'Medical', universityId },
-            { id: 13, name: 'Bachelor of Physiotherapy', code: 'BPT', department: 'Medical', universityId },
-            { id: 14, name: 'Bachelor of Nursing', code: 'BSc Nursing', department: 'Medical', universityId },
-            { id: 15, name: 'Bachelor of Pharmacy', code: 'B.Pharm', department: 'Medical', universityId },
-            { id: 16, name: 'Master of Surgery', code: 'MS', department: 'Medical', universityId }
-          ];
-          break;
-        case 'management':
-          courses = [
-            { id: 21, name: 'Master of Business Administration', code: 'MBA', department: 'Management', universityId },
-            { id: 22, name: 'Bachelor of Business Administration', code: 'BBA', department: 'Management', universityId },
-            { id: 23, name: 'Post Graduate Diploma in Management', code: 'PGDM', department: 'Management', universityId },
-            { id: 24, name: 'Bachelor of Commerce', code: 'B.Com', department: 'Commerce', universityId },
-            { id: 25, name: 'Master of Commerce', code: 'M.Com', department: 'Commerce', universityId }
-          ];
-          break;
-        case 'law':
-          courses = [
-            { id: 31, name: 'Bachelor of Laws', code: 'LLB', department: 'Law', universityId },
-            { id: 32, name: 'Master of Laws', code: 'LLM', department: 'Law', universityId },
-            { id: 33, name: 'Integrated BA LLB', code: 'BA LLB', department: 'Law', universityId },
-            { id: 34, name: 'Integrated BBA LLB', code: 'BBA LLB', department: 'Law', universityId }
-          ];
-          break;
-        case 'pharmacy':
-          courses = [
-            { id: 41, name: 'Bachelor of Pharmacy', code: 'B.Pharm', department: 'Pharmacy', universityId },
-            { id: 42, name: 'Master of Pharmacy', code: 'M.Pharm', department: 'Pharmacy', universityId },
-            { id: 43, name: 'Doctor of Pharmacy', code: 'Pharm.D', department: 'Pharmacy', universityId }
-          ];
-          break;
-        default:
-          courses = [
-            { id: 51, name: 'Bachelor of Arts', code: 'BA', department: 'Arts', universityId },
-            { id: 52, name: 'Bachelor of Science', code: 'BSc', department: 'Science', universityId },
-            { id: 53, name: 'Master of Arts', code: 'MA', department: 'Arts', universityId },
-            { id: 54, name: 'Master of Science', code: 'MSc', department: 'Science', universityId },
-            { id: 55, name: 'Bachelor of Computer Applications', code: 'BCA', department: 'Computer Science', universityId },
-            { id: 56, name: 'Master of Computer Applications', code: 'MCA', department: 'Computer Science', universityId }
-          ];
-      }
+      const response = {
+        "university": universityName,
+        "location": universityLocation,
+        "courses": courses
+      };
       
-      res.json(courses);
+      res.json(response);
     } catch (error) {
       console.error('Error fetching courses:', error);
       res.status(500).json({ error: 'Failed to fetch courses' });
