@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { MessageCircle, Moon, Sun } from 'lucide-react';
+import { MessageCircle, Moon, Sun, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface NavigationProps {
@@ -23,7 +23,7 @@ const Navigation: React.FC<NavigationProps> = ({
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <MessageCircle className="w-5 h-5 text-white" />
+              <Brain className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold text-foreground">Mentora</span>
           </div>
