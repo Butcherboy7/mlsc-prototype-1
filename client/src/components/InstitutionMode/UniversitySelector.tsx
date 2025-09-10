@@ -19,30 +19,27 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('India');
-  const [selectedState, setSelectedState] = useState('all');
   const [selectedUniversityId, setSelectedUniversityId] = useState<number | null>(null);
 
-  // Fetch universities from our backend (which uses the external API)
+  // Fetch universities from our backend (which uses the hipolabs API)
   const { data: universities = [], isLoading: universitiesLoading } = useQuery({
-    queryKey: ['universities', selectedCountry, selectedState],
+    queryKey: ['universities', selectedCountry],
     queryFn: async () => {
-      let url = `/api/institutions/universities?country=${selectedCountry}`;
-      if (selectedState && selectedState !== 'all' && selectedCountry === 'India') {
-        url += `&state=${encodeURIComponent(selectedState)}`;
-      }
+      const url = `/api/institutions/universities?country=${selectedCountry}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch universities');
       return response.json();
     }
   });
 
-  // Fetch courses for selected university
-  const { data: courses = [], isLoading: coursesLoading } = useQuery({
-    queryKey: ['courses', selectedUniversityId, selectedUniversity],
+  // Fetch course data for selected university in the new format
+  const { data: courseData, isLoading: coursesLoading } = useQuery({
+    queryKey: ['courseData', selectedUniversityId, selectedUniversity],
     queryFn: async () => {
-      if (!selectedUniversityId || !selectedUniversity) return [];
+      if (!selectedUniversityId || !selectedUniversity) return null;
       const university = universities.find((uni: any) => uni.name === selectedUniversity);
-      const response = await fetch(`/api/institutions/universities/${selectedUniversityId}/courses?name=${encodeURIComponent(selectedUniversity)}&type=${university?.type || ''}`);
+      const location = university ? `${university.city}, ${university.state}` : 'Unknown';
+      const response = await fetch(`/api/institutions/universities/${selectedUniversityId}/courses?name=${encodeURIComponent(selectedUniversity)}&location=${encodeURIComponent(location)}`);
       if (!response.ok) throw new Error('Failed to fetch courses');
       return response.json();
     },
@@ -67,13 +64,6 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
     'India', 'USA', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'China', 'Japan', 'Brazil'
   ];
 
-  const indianStates = [
-    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 
-    'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 
-    'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 
-    'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 
-    'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu and Kashmir', 'Ladakh'
-  ];
 
   const filteredUniversities = universities.filter((uni: any) =>
     uni.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -153,7 +143,6 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                 <div className="mt-2">
                   <Select value={selectedCountry} onValueChange={(value) => {
                     setSelectedCountry(value);
-                    setSelectedState('all');
                     setSelectedUniversity('');
                     setSelectedCourse('');
                     setSelectedUniversityId(null);
@@ -172,34 +161,6 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                 </div>
               </div>
 
-              {/* State Selection (for India) */}
-              {selectedCountry === 'India' && (
-                <div>
-                  <Label htmlFor="state-select" className="text-base font-medium">
-                    State (Optional)
-                  </Label>
-                  <div className="mt-2">
-                    <Select value={selectedState} onValueChange={(value) => {
-                      setSelectedState(value);
-                      setSelectedUniversity('');
-                      setSelectedCourse('');
-                      setSelectedUniversityId(null);
-                    }}>
-                      <SelectTrigger data-testid="select-state">
-                        <SelectValue placeholder="Select your state (optional)" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All States</SelectItem>
-                        {indianStates.map((state) => (
-                          <SelectItem key={state} value={state}>
-                            {state}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
 
               {/* University Selection */}
               <div>
@@ -263,10 +224,10 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
                           Loading courses...
                         </div>
-                      ) : courses.length > 0 ? (
-                        courses.map((course: any) => (
+                      ) : courseData?.courses?.length > 0 ? (
+                        courseData.courses.map((course: any) => (
                           <SelectItem key={course.name} value={course.name}>
-                            {course.name} {course.code && `(${course.code})`}
+                            {course.name} ({course.degree})
                           </SelectItem>
                         ))
                       ) : selectedUniversity ? (
