@@ -19,7 +19,7 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('India');
-  const [selectedState, setSelectedState] = useState('');
+  const [selectedState, setSelectedState] = useState('all');
   const [selectedUniversityId, setSelectedUniversityId] = useState<number | null>(null);
 
   // Fetch universities from our backend (which uses the external API)
@@ -27,7 +27,7 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
     queryKey: ['universities', selectedCountry, selectedState],
     queryFn: async () => {
       let url = `/api/institutions/universities?country=${selectedCountry}`;
-      if (selectedState && selectedCountry === 'India') {
+      if (selectedState && selectedState !== 'all' && selectedCountry === 'India') {
         url += `&state=${encodeURIComponent(selectedState)}`;
       }
       const response = await fetch(url);
@@ -153,7 +153,7 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                 <div className="mt-2">
                   <Select value={selectedCountry} onValueChange={(value) => {
                     setSelectedCountry(value);
-                    setSelectedState('');
+                    setSelectedState('all');
                     setSelectedUniversity('');
                     setSelectedCourse('');
                     setSelectedUniversityId(null);
@@ -180,7 +180,7 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                   </Label>
                   <div className="mt-2">
                     <Select value={selectedState} onValueChange={(value) => {
-                      setSelectedState(value === 'all' ? '' : value);
+                      setSelectedState(value);
                       setSelectedUniversity('');
                       setSelectedCourse('');
                       setSelectedUniversityId(null);
