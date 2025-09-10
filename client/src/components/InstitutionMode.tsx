@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import UniversitySelector from './InstitutionMode/UniversitySelector';
-import SyllabusUpload from './InstitutionMode/SyllabusUpload';
-import SyllabusPreview from './InstitutionMode/SyllabusPreview';
-import InstitutionDashboard from './InstitutionMode/InstitutionDashboard';
+import UniversitySelector from '@/components/InstitutionMode/UniversitySelector';
+import SyllabusUpload from '@/components/InstitutionMode/SyllabusUpload';
+import SyllabusPreview from '@/components/InstitutionMode/SyllabusPreview';
+import InstitutionDashboard from '@/components/InstitutionMode/InstitutionDashboard';
 
 interface InstitutionModeProps {
   onBack: () => void;

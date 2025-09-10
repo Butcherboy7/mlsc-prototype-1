@@ -12,13 +12,29 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Institution Mode routes
   
-  // Get all universities
+  // Get all universities from external API
   app.get('/api/institutions/universities', async (req, res) => {
     try {
-      const universities = await storage.getUniversities();
+      const country = req.query.country || 'USA';
+      
+      // Fetch from the universities API
+      const response = await fetch(`https://api.ycd.dev/universities?country=${country}`);
+      if (!response.ok) {
+        // Fallback to local storage if API fails
+        const universities = await storage.getUniversities();
+        return res.json(universities);
+      }
+      
+      const universities = await response.json();
       res.json(universities);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to fetch universities' });
+      // Fallback to local storage
+      try {
+        const universities = await storage.getUniversities();
+        res.json(universities);
+      } catch (fallbackError) {
+        res.status(500).json({ error: 'Failed to fetch universities' });
+      }
     }
   });
 

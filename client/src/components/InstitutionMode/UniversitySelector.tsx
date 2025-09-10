@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Search, Building, BookOpen, Calendar } from 'lucide-react';
+import { ArrowLeft, Search, Building, BookOpen, Calendar, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 interface UniversitySelectorProps {
   onSelectionComplete: (selection: { university: string; course: string; semester: string }) => void;
@@ -17,40 +18,66 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
   const [selectedUniversity, setSelectedUniversity] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('USA');
+  const [selectedUniversityId, setSelectedUniversityId] = useState<number | null>(null);
 
-  // Mock data - in real implementation, this would come from the database
-  const universities = [
-    'Harvard University',
-    'MIT',
-    'Stanford University',
-    'University of California, Berkeley',
-    'Carnegie Mellon University',
-    'University of Oxford',
-    'University of Cambridge',
-    'ETH Zurich',
-  ];
+  // Fetch universities from our backend (which uses the external API)
+  const { data: universities = [], isLoading: universitiesLoading } = useQuery({
+    queryKey: ['universities', selectedCountry],
+    queryFn: async () => {
+      const response = await fetch(`/api/institutions/universities?country=${selectedCountry}`);
+      if (!response.ok) throw new Error('Failed to fetch universities');
+      return response.json();
+    }
+  });
 
-  const courses = [
-    'Computer Science',
-    'Engineering',
-    'Mathematics',
-    'Physics',
-    'Business Administration',
-    'Medicine',
-    'Law',
-    'Economics',
-  ];
+  // Fetch courses for selected university
+  const { data: courses = [], isLoading: coursesLoading } = useQuery({
+    queryKey: ['courses', selectedUniversityId],
+    queryFn: async () => {
+      if (!selectedUniversityId) return [];
+      const response = await fetch(`/api/institutions/universities/${selectedUniversityId}/courses`);
+      if (!response.ok) throw new Error('Failed to fetch courses');
+      return response.json();
+    },
+    enabled: !!selectedUniversityId
+  });
 
+  // Year-based semester options
   const semesters = [
-    'Fall 2024',
-    'Spring 2025',
-    'Summer 2024',
-    'Winter 2024',
+    '1st Year 1st Semester',
+    '1st Year 2nd Semester', 
+    '2nd Year 1st Semester',
+    '2nd Year 2nd Semester',
+    '3rd Year 1st Semester',
+    '3rd Year 2nd Semester',
+    '4th Year 1st Semester',
+    '4th Year 2nd Semester',
+    '5th Year 1st Semester',
+    '5th Year 2nd Semester',
   ];
 
-  const filteredUniversities = universities.filter(uni =>
-    uni.toLowerCase().includes(searchTerm.toLowerCase())
+  const countries = [
+    'USA', 'India', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'China', 'Japan', 'Brazil'
+  ];
+
+  const filteredUniversities = universities.filter((uni: any) =>
+    uni.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleUniversityChange = (universityName: string) => {
+    setSelectedUniversity(universityName);
+    const university = universities.find((uni: any) => uni.name === universityName);
+    if (university) {
+      // For API universities, we'll use a hash of the name as ID
+      const universityId = Math.abs(university.name.split('').reduce((a: number, b: string) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0));
+      setSelectedUniversityId(universityId);
+    }
+    setSelectedCourse(''); // Reset course when university changes
+  };
 
   const canProceed = selectedUniversity && selectedCourse && selectedSemester;
 
@@ -106,6 +133,32 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Country Selection */}
+              <div>
+                <Label htmlFor="country-select" className="text-base font-medium">
+                  Country
+                </Label>
+                <div className="mt-2">
+                  <Select value={selectedCountry} onValueChange={(value) => {
+                    setSelectedCountry(value);
+                    setSelectedUniversity('');
+                    setSelectedCourse('');
+                    setSelectedUniversityId(null);
+                  }}>
+                    <SelectTrigger data-testid="select-country">
+                      <SelectValue placeholder="Select your country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               {/* University Selection */}
               <div>
                 <Label htmlFor="university-search" className="text-base font-medium">
@@ -119,17 +172,25 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="mb-3"
                     data-testid="input-university-search"
+                    disabled={universitiesLoading}
                   />
-                  <Select value={selectedUniversity} onValueChange={setSelectedUniversity}>
+                  <Select value={selectedUniversity} onValueChange={handleUniversityChange} disabled={universitiesLoading}>
                     <SelectTrigger data-testid="select-university">
-                      <SelectValue placeholder="Select your university" />
+                      <SelectValue placeholder={universitiesLoading ? "Loading universities..." : "Select your university"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {filteredUniversities.map((uni) => (
-                        <SelectItem key={uni} value={uni}>
-                          {uni}
-                        </SelectItem>
-                      ))}
+                      {universitiesLoading ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Loading...
+                        </div>
+                      ) : (
+                        filteredUniversities.map((uni: any) => (
+                          <SelectItem key={uni.name} value={uni.name}>
+                            {uni.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -142,16 +203,35 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                   Course/Program
                 </Label>
                 <div className="mt-2">
-                  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <Select 
+                    value={selectedCourse} 
+                    onValueChange={setSelectedCourse}
+                    disabled={!selectedUniversity || coursesLoading}
+                  >
                     <SelectTrigger data-testid="select-course">
-                      <SelectValue placeholder="Select your course" />
+                      <SelectValue placeholder={
+                        !selectedUniversity ? "Select university first" :
+                        coursesLoading ? "Loading courses..." : 
+                        "Select your course"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
-                      {courses.map((course) => (
-                        <SelectItem key={course} value={course}>
-                          {course}
-                        </SelectItem>
-                      ))}
+                      {coursesLoading ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Loading courses...
+                        </div>
+                      ) : courses.length > 0 ? (
+                        courses.map((course: any) => (
+                          <SelectItem key={course.name} value={course.name}>
+                            {course.name} {course.code && `(${course.code})`}
+                          </SelectItem>
+                        ))
+                      ) : selectedUniversity ? (
+                        <div className="p-4 text-gray-500 text-center">
+                          No courses available for this university
+                        </div>
+                      ) : null}
                     </SelectContent>
                   </Select>
                 </div>

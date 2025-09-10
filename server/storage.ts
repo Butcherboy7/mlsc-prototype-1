@@ -81,20 +81,54 @@ export class MemStorage implements IStorage {
     ];
 
     sampleUniversities.forEach(uni => {
-      const university: University = { ...uni, id: this.currentId.universities++ };
+      const university: University = { 
+        ...uni, 
+        id: this.currentId.universities++,
+        country: uni.country || null,
+        city: uni.city || null
+      };
       this.universities.set(university.id, university);
     });
 
-    // Add sample courses
+    // Add sample courses for each university
     const sampleCourses = [
+      // Harvard University (id: 1)
       { universityId: 1, name: 'Computer Science', code: 'CS', department: 'Engineering' },
       { universityId: 1, name: 'Mathematics', code: 'MATH', department: 'Sciences' },
+      { universityId: 1, name: 'Business Administration', code: 'MBA', department: 'Business' },
+      { universityId: 1, name: 'Medicine', code: 'MD', department: 'Medical' },
+      { universityId: 1, name: 'Law', code: 'JD', department: 'Law' },
+      
+      // MIT (id: 2)
       { universityId: 2, name: 'Computer Science', code: 'CS', department: 'Engineering' },
       { universityId: 2, name: 'Electrical Engineering', code: 'EE', department: 'Engineering' },
+      { universityId: 2, name: 'Mechanical Engineering', code: 'ME', department: 'Engineering' },
+      { universityId: 2, name: 'Physics', code: 'PHYS', department: 'Sciences' },
+      
+      // Stanford University (id: 3)
+      { universityId: 3, name: 'Computer Science', code: 'CS', department: 'Engineering' },
+      { universityId: 3, name: 'Data Science', code: 'DS', department: 'Engineering' },
+      { universityId: 3, name: 'Business Administration', code: 'MBA', department: 'Business' },
+      
+      // University of Oxford (id: 4)
+      { universityId: 4, name: 'Computer Science', code: 'CS', department: 'Engineering' },
+      { universityId: 4, name: 'Philosophy', code: 'PHIL', department: 'Arts' },
+      { universityId: 4, name: 'Economics', code: 'ECON', department: 'Social Sciences' },
+      
+      // University of Cambridge (id: 5)
+      { universityId: 5, name: 'Computer Science', code: 'CS', department: 'Engineering' },
+      { universityId: 5, name: 'Mathematics', code: 'MATH', department: 'Sciences' },
+      { universityId: 5, name: 'Natural Sciences', code: 'NS', department: 'Sciences' },
     ];
 
     sampleCourses.forEach(course => {
-      const courseEntity: Course = { ...course, id: this.currentId.courses++ };
+      const courseEntity: Course = { 
+        ...course, 
+        id: this.currentId.courses++,
+        universityId: course.universityId || null,
+        code: course.code || null,
+        department: course.department || null
+      };
       this.courses.set(courseEntity.id, courseEntity);
     });
   }
@@ -150,7 +184,13 @@ export class MemStorage implements IStorage {
 
   async createSemester(insertSemester: InsertSemester): Promise<Semester> {
     const id = this.currentId.semesters++;
-    const semester: Semester = { ...insertSemester, id };
+    const semester: Semester = { 
+      ...insertSemester, 
+      id,
+      courseId: insertSemester.courseId || null,
+      startDate: insertSemester.startDate || null,
+      endDate: insertSemester.endDate || null
+    };
     this.semesters.set(id, semester);
     return semester;
   }
@@ -169,7 +209,10 @@ export class MemStorage implements IStorage {
     const upload: Upload = { 
       ...insertUpload, 
       id,
+      semesterId: insertUpload.semesterId || null,
       uploadedAt: new Date(),
+      parsedData: insertUpload.parsedData || null,
+      status: insertUpload.status || 'pending'
     };
     this.uploads.set(id, upload);
     return upload;
