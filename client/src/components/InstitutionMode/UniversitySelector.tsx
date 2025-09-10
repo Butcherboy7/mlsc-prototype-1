@@ -18,14 +18,19 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
   const [selectedUniversity, setSelectedUniversity] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState('USA');
+  const [selectedCountry, setSelectedCountry] = useState('India');
+  const [selectedState, setSelectedState] = useState('');
   const [selectedUniversityId, setSelectedUniversityId] = useState<number | null>(null);
 
   // Fetch universities from our backend (which uses the external API)
   const { data: universities = [], isLoading: universitiesLoading } = useQuery({
-    queryKey: ['universities', selectedCountry],
+    queryKey: ['universities', selectedCountry, selectedState],
     queryFn: async () => {
-      const response = await fetch(`/api/institutions/universities?country=${selectedCountry}`);
+      let url = `/api/institutions/universities?country=${selectedCountry}`;
+      if (selectedState && selectedCountry === 'India') {
+        url += `&state=${encodeURIComponent(selectedState)}`;
+      }
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch universities');
       return response.json();
     }
@@ -33,14 +38,15 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
 
   // Fetch courses for selected university
   const { data: courses = [], isLoading: coursesLoading } = useQuery({
-    queryKey: ['courses', selectedUniversityId],
+    queryKey: ['courses', selectedUniversityId, selectedUniversity],
     queryFn: async () => {
-      if (!selectedUniversityId) return [];
-      const response = await fetch(`/api/institutions/universities/${selectedUniversityId}/courses`);
+      if (!selectedUniversityId || !selectedUniversity) return [];
+      const university = universities.find((uni: any) => uni.name === selectedUniversity);
+      const response = await fetch(`/api/institutions/universities/${selectedUniversityId}/courses?name=${encodeURIComponent(selectedUniversity)}&type=${university?.type || ''}`);
       if (!response.ok) throw new Error('Failed to fetch courses');
       return response.json();
     },
-    enabled: !!selectedUniversityId
+    enabled: !!selectedUniversityId && !!selectedUniversity
   });
 
   // Year-based semester options
@@ -58,7 +64,15 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
   ];
 
   const countries = [
-    'USA', 'India', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'China', 'Japan', 'Brazil'
+    'India', 'USA', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'China', 'Japan', 'Brazil'
+  ];
+
+  const indianStates = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 
+    'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 
+    'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 
+    'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 
+    'Uttarakhand', 'West Bengal', 'Delhi', 'Jammu and Kashmir', 'Ladakh'
   ];
 
   const filteredUniversities = universities.filter((uni: any) =>
@@ -69,12 +83,10 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
     setSelectedUniversity(universityName);
     const university = universities.find((uni: any) => uni.name === universityName);
     if (university) {
-      // For API universities, we'll use a hash of the name as ID
-      const universityId = Math.abs(university.name.split('').reduce((a: number, b: string) => {
+      setSelectedUniversityId(university.id || Math.abs(university.name.split('').reduce((a: number, b: string) => {
         a = ((a << 5) - a) + b.charCodeAt(0);
         return a & a;
-      }, 0));
-      setSelectedUniversityId(universityId);
+      }, 0)));
     }
     setSelectedCourse(''); // Reset course when university changes
   };
@@ -141,6 +153,7 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                 <div className="mt-2">
                   <Select value={selectedCountry} onValueChange={(value) => {
                     setSelectedCountry(value);
+                    setSelectedState('');
                     setSelectedUniversity('');
                     setSelectedCourse('');
                     setSelectedUniversityId(null);
@@ -158,6 +171,35 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                   </Select>
                 </div>
               </div>
+
+              {/* State Selection (for India) */}
+              {selectedCountry === 'India' && (
+                <div>
+                  <Label htmlFor="state-select" className="text-base font-medium">
+                    State (Optional)
+                  </Label>
+                  <div className="mt-2">
+                    <Select value={selectedState} onValueChange={(value) => {
+                      setSelectedState(value);
+                      setSelectedUniversity('');
+                      setSelectedCourse('');
+                      setSelectedUniversityId(null);
+                    }}>
+                      <SelectTrigger data-testid="select-state">
+                        <SelectValue placeholder="Select your state (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All States</SelectItem>
+                        {indianStates.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
 
               {/* University Selection */}
               <div>
