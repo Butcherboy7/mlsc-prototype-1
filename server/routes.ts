@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from 'multer';
+import fetch from 'node-fetch';
 
 // Configure multer for file uploads
 const upload = multer({ 
