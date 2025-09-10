@@ -1,0 +1,55 @@
+{
+  "project": "Mentora - Add Institution Mode",
+  "goal": "Introduce two distinct modes at app start: Personal and Institution. Preserve all existing Personal Mode features and only add Institution Mode as a new module.",
+  "features": {
+    "mode_selector": {
+      "options": ["Personal Mode", "Institution Mode"],
+      "ui": "Simple landing screen with two large buttons/cards"
+    },
+    "personal_mode": {
+      "status": "Already implemented",
+      "note": "Do not modify existing features (math tutor, coding mentor, notes, flashcards, planner, etc)."
+    },
+    "institution_mode": {
+      "flow": [
+        "Student selects University → Course → Semester",
+        "Check DB if syllabus exists",
+        "If not → prompt upload",
+        "AI parses syllabus into structured JSON",
+        "Save to DB",
+        "Show syllabus dashboard"
+      ],
+      "file_upload": {
+        "formats": [".pdf", ".docx", ".jpg", ".png"],
+        "max_size": "10MB"
+      },
+      "ai_pipeline": {
+        "extract": ["pdfplumber", "docx parser", "OCR for images"],
+        "gemini_prompt": "Parse syllabus into JSON {university, course, semester, subjects[], timetable[], exam_calendar[]}"
+      },
+      "database": {
+        "tables": ["universities", "courses", "semesters", "subjects", "timetable", "exam_calendar", "uploads"],
+        "note": "Use new tables, do not alter existing Personal Mode DB schema."
+      },
+      "frontend": {
+        "pages": [
+          "University/Course/Semester Selector",
+          "Upload Page",
+          "Parsed Preview (with edit option)",
+          "Institution Dashboard"
+        ]
+      },
+      "backend": {
+        "endpoints": {
+          "POST /institution/upload": "Handle upload + OCR + Gemini parsing",
+          "GET /institution/syllabus/:university/:course/:semester": "Fetch data",
+          "POST /institution/confirm": "Save confirmed JSON"
+        }
+      }
+    }
+  },
+  "extra": {
+    "network_effect": "Future students see uploaded syllabus instantly.",
+    "integration": "Keep Personal Mode intact. Institution Mode is separate module."
+  }
+}

@@ -12,7 +12,11 @@ import WelcomeDashboard from '@/components/WelcomeDashboard';
 import PDFSummarizer from '@/components/PDFSummarizer';
 import CodeLab from '@/components/CodeLab';
 import LoadingScreen from '@/components/LoadingScreen';
+import ModeSelector from '@/components/ModeSelector';
+import InstitutionMode from '@/components/InstitutionMode';
 import { useSpacedRepetition } from '@/hooks/useSpacedRepetition';
+
+type AppMode = 'selector' | 'personal' | 'institution';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -20,6 +24,7 @@ const Index = () => {
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDashboard, setShowDashboard] = useState(true);
+  const [appMode, setAppMode] = useState<AppMode>('selector');
   
   const { getDueCards } = useSpacedRepetition();
   const dueCardsCount = getDueCards().length;
@@ -57,13 +62,28 @@ const Index = () => {
     setSelectedMode(null);
   };
 
+  const handleModeSelection = (mode: 'personal' | 'institution') => {
+    setAppMode(mode);
+    if (mode === 'personal') {
+      setShowDashboard(true);
+      setActiveTab('dashboard');
+    }
+  };
+
+  const handleBackToModeSelector = () => {
+    setAppMode('selector');
+    setActiveTab('dashboard');
+    setSelectedMode(null);
+    setShowDashboard(true);
+  };
+
   const handleLoadingComplete = () => {
     setIsLoading(false);
   };
 
   const renderActiveComponent = () => {
     if (showDashboard && activeTab === 'dashboard') {
-      return <WelcomeDashboard onSelectMode={handleSelectMode} />;
+      return <WelcomeDashboard onSelectMode={handleSelectMode} onBack={handleBackToModeSelector} />;
     }
 
     switch (activeTab) {
@@ -88,7 +108,17 @@ const Index = () => {
     return <LoadingScreen onLoadingComplete={handleLoadingComplete} />;
   }
 
-  // Show dashboard only once at startup
+  // Show mode selector at app start
+  if (appMode === 'selector') {
+    return <ModeSelector onSelectMode={handleModeSelection} />;
+  }
+
+  // Show Institution Mode
+  if (appMode === 'institution') {
+    return <InstitutionMode onBack={handleBackToModeSelector} />;
+  }
+
+  // Personal Mode - Show dashboard only once at startup
   if (showDashboard && activeTab === 'dashboard') {
     return (
       <div className="min-h-screen bg-background">

@@ -11,11 +11,14 @@ import {
   Brain,
   User,
   Upload,
-  Sparkles
+  Sparkles,
+  ArrowLeft
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface WelcomeDashboardProps {
   onSelectMode: (mode: string) => void;
+  onBack?: () => void;
 }
 
 const modes = [
@@ -61,10 +64,26 @@ const modes = [
   }
 ];
 
-const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({ onSelectMode }) => {
+const WelcomeDashboard: React.FC<WelcomeDashboardProps> = ({ onSelectMode, onBack }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="container mx-auto px-4 py-12">
+        {/* Back Button */}
+        {onBack && (
+          <div className="mb-8">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="text-gray-600 hover:text-gray-800"
+              data-testid="button-back-to-mode-selector"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Mode Selection
+            </Button>
+          </div>
+        )}
+        
         {/* Header */}
         <div className="text-center mb-16 animate-fade-in">
           <div className="flex items-center justify-center mb-6">
