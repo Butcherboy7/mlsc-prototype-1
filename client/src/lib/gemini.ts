@@ -13,7 +13,7 @@ interface GeminiResponse {
 // Context memory for each session
 const contextStore = new Map<string, Message[]>();
 
-const GEMINI_API_KEY = 'AIzaSyDc89EvWZNp0Z6VTiKZbGopHoebZEVEWYY';
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
 const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
 export const geminiService = {

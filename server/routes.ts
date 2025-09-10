@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from 'multer';
 import fetch from 'node-fetch';
+import { parseSyllabusWithAI, enhanceCourseData } from './lib/gemini';
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -88,6 +89,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { "code": "4-2", "syllabus": [] }
       ];
       
+      // Get university info from the universities array if available
+      let universityData = null;
+      try {
+        const universityResponse = await fetch(`https://universities.hipolabs.com/search?country=${req.query.country || 'India'}`);
+        if (universityResponse.ok) {
+          const universities = await universityResponse.json() as any[];
+          universityData = universities.find((uni: any) => uni.name === universityName);
+        }
+      } catch (error) {
+        console.log('Could not fetch university data for enhancement:', error);
+      }
+      
       // Determine university type from name
       const name = universityName.toLowerCase();
       let courses = [];
@@ -164,6 +177,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
       }
       
+      // Try to enhance course data using AI if university web pages are available
+      if (universityData?.web_pages && universityData.web_pages.length > 0) {
+        try {
+          const enhancedData = await enhanceCourseData({
+            university: universityName,
+            location: universityLocation,
+            courses: courses
+          }, universityData.web_pages);
+          courses = enhancedData.courses;
+        } catch (enhanceError) {
+          console.log('Could not enhance course data, using default:', enhanceError);
+        }
+      }
+      
       const response = {
         "university": universityName,
         "location": universityLocation,
@@ -221,56 +248,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending',
       });
 
-      // Simulate AI parsing (in real implementation, this would use Gemini AI)
-      const mockParsedData = {
-        subjects: [
-          {
-            name: 'Data Structures and Algorithms',
-            code: 'CS301',
-            credits: 3,
-            instructor: 'Dr. Smith',
-          },
-          {
-            name: 'Database Systems',
-            code: 'CS302',
-            credits: 3,
-            instructor: 'Dr. Johnson',
-          },
-        ],
-        timetable: [
-          {
-            subject: 'Data Structures and Algorithms',
-            day: 'Monday',
-            startTime: '09:00',
-            endTime: '10:30',
-            location: 'Room A101',
-          },
-        ],
-        examCalendar: [
-          {
-            subject: 'Data Structures and Algorithms',
-            type: 'Midterm',
-            date: '2024-11-15',
-            duration: 120,
-            location: 'Hall A',
-          },
-        ],
-      };
+      // Use AI to parse the syllabus document
+      const { universityName } = req.body;
+      const parsedData = await parseSyllabusWithAI(req.file.path, universityName || 'Unknown University');
 
       // Update upload with parsed data
       const updatedUpload = await storage.updateUploadStatus(
         upload.id, 
         'processed', 
-        mockParsedData
+        parsedData
       );
 
       res.json({ 
         success: true, 
         uploadId: upload.id,
-        parsedData: mockParsedData 
+        parsedData: parsedData 
       });
     } catch (error) {
       res.status(500).json({ error: 'Failed to process upload' });
+    }
+  });
+
+  // AI-enhanced course data when API data is insufficient
+  app.post('/api/institutions/ai-parse', async (req, res) => {
+    try {
+      const { universityName, universityLocation, webPages } = req.body;
+      
+      if (!universityName) {
+        return res.status(400).json({ error: 'University name is required' });
+      }
+      
+      // Use AI to generate enhanced course data based on university info
+      const baseData = {
+        university: universityName,
+        location: universityLocation || 'Unknown',
+        courses: [
+          {
+            "name": "General Program",
+            "degree": "Undergraduate",
+            "departments": ["General"],
+            "semesters": [
+              { "code": "1-1", "syllabus": [] },
+              { "code": "1-2", "syllabus": [] },
+              { "code": "2-1", "syllabus": [] },
+              { "code": "2-2", "syllabus": [] },
+              { "code": "3-1", "syllabus": [] },
+              { "code": "3-2", "syllabus": [] },
+              { "code": "4-1", "syllabus": [] },
+              { "code": "4-2", "syllabus": [] }
+            ]
+          }
+        ]
+      };
+      
+      // Enhance with AI if web pages are available
+      let enhancedData = baseData;
+      if (webPages && webPages.length > 0) {
+        try {
+          enhancedData = await enhanceCourseData(baseData, webPages);
+        } catch (aiError) {
+          console.log('AI enhancement failed, using base data:', aiError);
+        }
+      }
+      
+      res.json(enhancedData);
+    } catch (error) {
+      console.error('Error in AI parse:', error);
+      res.status(500).json({ error: 'Failed to generate course data' });
     }
   });
 
