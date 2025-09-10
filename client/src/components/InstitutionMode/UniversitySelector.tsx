@@ -180,7 +180,7 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                   </Label>
                   <div className="mt-2">
                     <Select value={selectedState} onValueChange={(value) => {
-                      setSelectedState(value);
+                      setSelectedState(value === 'all' ? '' : value);
                       setSelectedUniversity('');
                       setSelectedCourse('');
                       setSelectedUniversityId(null);
@@ -189,7 +189,7 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                         <SelectValue placeholder="Select your state (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All States</SelectItem>
+                        <SelectItem value="all">All States</SelectItem>
                         {indianStates.map((state) => (
                           <SelectItem key={state} value={state}>
                             {state}
