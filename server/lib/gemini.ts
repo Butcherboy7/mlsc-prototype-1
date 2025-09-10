@@ -3,41 +3,71 @@ import * as fs from "fs";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-export async function parseSyllabusWithAI(filePath: string, universityName: string): Promise<any> {
+export async function parseSyllabusWithAI(extractedText: string, universityName: string): Promise<any> {
   try {
-    // Read the uploaded file
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    // Validate the extracted text content
+    if (!extractedText || extractedText.trim().length < 50) {
+      throw new Error('No meaningful text content provided. Please ensure the PDF contains readable text.');
+    }
     
-    const prompt = `You are an expert educational data parser. Analyze this syllabus document and extract course information.
+    const fileContent = extractedText;
+    console.log(`Processing ${fileContent.length} characters of extracted text`);
+    
+    const prompt = `You are an expert educational data parser. Analyze this REAL syllabus document and extract ACTUAL course information.
 
 University: ${universityName}
 
-Please parse the following syllabus document and return ONLY valid JSON in this exact format:
+IMPORTANT: This is a REAL document upload. Parse the ACTUAL content and return REAL data, not generic placeholders.
+
+Document Analysis Instructions:
+1. Extract the real course name(s) from the document
+2. Identify the actual degree type (B.Tech, M.Tech, MBA, etc.)
+3. Find actual subject names, codes, and credits if available
+4. Extract real timetable information if present
+5. Look for exam schedules and dates
+6. Identify department names and specializations
+
+Return ONLY valid JSON in this exact format with REAL extracted data:
 {
-  "university": "University/College Name",
-  "location": "City, State",
+  "university": "${universityName}",
+  "location": "City, State (extract from document if available)",
   "courses": [
     {
-      "name": "Course/Program Name",
-      "degree": "B.Tech | M.Tech | MBA | etc.",
-      "departments": ["CSE", "ECE", "Mechanical"],
+      "name": "ACTUAL Course Name from document",
+      "degree": "ACTUAL Degree type from document",
+      "departments": ["ACTUAL departments found"],
+      "subjects": [
+        {
+          "name": "ACTUAL subject name",
+          "code": "ACTUAL subject code",
+          "credits": "ACTUAL credits",
+          "semester": "ACTUAL semester"
+        }
+      ],
       "semesters": [
-        { "code": "1-1", "syllabus": [] },
-        { "code": "1-2", "syllabus": [] },
-        { "code": "2-1", "syllabus": [] },
-        { "code": "2-2", "syllabus": [] },
-        { "code": "3-1", "syllabus": [] },
-        { "code": "3-2", "syllabus": [] },
-        { "code": "4-1", "syllabus": [] },
-        { "code": "4-2", "syllabus": [] }
+        { "code": "1-1", "syllabus": ["ACTUAL subjects for this semester"] },
+        { "code": "1-2", "syllabus": ["ACTUAL subjects for this semester"] }
       ]
+    }
+  ],
+  "timetable": [
+    {
+      "subject": "ACTUAL subject name",
+      "day": "ACTUAL day",
+      "time": "ACTUAL time",
+      "location": "ACTUAL location if available"
+    }
+  ],
+  "examSchedule": [
+    {
+      "subject": "ACTUAL subject",
+      "date": "ACTUAL date if available",
+      "type": "ACTUAL exam type"
     }
   ]
 }
 
-Extract as much information as possible from the document. If you can't find specific information, make reasonable assumptions based on the university name and course type.
-
-Syllabus Document Content:
+Document Content to Parse:
 ${fileContent}`;
 
     const response = await ai.models.generateContent({
@@ -88,60 +118,11 @@ ${fileContent}`;
     }
   } catch (error) {
     console.error('AI parsing error:', error);
-    // Return default structure if AI parsing fails
-    return {
-      university: universityName,
-      location: "Unknown",
-      courses: [
-        {
-          name: "General Course",
-          degree: "Undergraduate",
-          departments: ["General"],
-          semesters: [
-            { "code": "1-1", "syllabus": [] },
-            { "code": "1-2", "syllabus": [] },
-            { "code": "2-1", "syllabus": [] },
-            { "code": "2-2", "syllabus": [] },
-            { "code": "3-1", "syllabus": [] },
-            { "code": "3-2", "syllabus": [] },
-            { "code": "4-1", "syllabus": [] },
-            { "code": "4-2", "syllabus": [] }
-          ]
-        }
-      ]
-    };
+    
+    // Return error message instead of dummy data
+    throw new Error(`Failed to parse syllabus content: ${error}. Please ensure the text contains valid syllabus information.`);
   }
 }
 
-export async function enhanceCourseData(basicCourseData: any, universityWebPages: string[]): Promise<any> {
-  try {
-    if (!universityWebPages || universityWebPages.length === 0) {
-      return basicCourseData;
-    }
-
-    const prompt = `You are an expert at extracting university course information. Based on this university's website URLs and the basic course data provided, enhance the course information with more detailed departments and course structures.
-
-University websites: ${universityWebPages.join(', ')}
-Current course data: ${JSON.stringify(basicCourseData, null, 2)}
-
-Please return enhanced course data in the same JSON format, adding more specific departments and course names based on what would typically be offered at this type of institution.`;
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      config: {
-        responseMimeType: "application/json"
-      },
-      contents: prompt,
-    });
-
-    const rawJson = response.text;
-    if (rawJson) {
-      return JSON.parse(rawJson);
-    } else {
-      return basicCourseData;
-    }
-  } catch (error) {
-    console.error('Course enhancement error:', error);
-    return basicCourseData;
-  }
-}
+// REMOVED: enhanceCourseData function to prevent AI-generated fake content
+// This ensures we only use real data from APIs or uploaded documents

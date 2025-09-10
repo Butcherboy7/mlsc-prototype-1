@@ -46,19 +46,25 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
     enabled: !!selectedUniversityId && !!selectedUniversity
   });
 
-  // Year-based semester options
-  const semesters = [
-    '1st Year 1st Semester',
-    '1st Year 2nd Semester', 
-    '2nd Year 1st Semester',
-    '2nd Year 2nd Semester',
-    '3rd Year 1st Semester',
-    '3rd Year 2nd Semester',
-    '4th Year 1st Semester',
-    '4th Year 2nd Semester',
-    '5th Year 1st Semester',
-    '5th Year 2nd Semester',
-  ];
+  // Get degree-aware semester options based on selected course
+  const getSemesterOptions = () => {
+    if (!courseData?.courses || !selectedCourse) {
+      return [];
+    }
+    
+    const selectedCourseData = courseData.courses.find((course: any) => course.name === selectedCourse);
+    if (!selectedCourseData) {
+      return [];
+    }
+    
+    // Map semester codes to readable names
+    return selectedCourseData.semesters.map((sem: any) => {
+      const [year, term] = sem.code.split('-');
+      return `${year}${year === '1' ? 'st' : year === '2' ? 'nd' : year === '3' ? 'rd' : 'th'} Year ${term}${term === '1' ? 'st' : 'nd'} Semester`;
+    });
+  };
+  
+  const availableSemesters = getSemesterOptions();
 
   const countries = [
     'India', 'USA', 'UK', 'Canada', 'Australia', 'Germany', 'France', 'China', 'Japan', 'Brazil'
@@ -252,11 +258,17 @@ const UniversitySelector: React.FC<UniversitySelectorProps> = ({ onSelectionComp
                       <SelectValue placeholder="Select your semester" />
                     </SelectTrigger>
                     <SelectContent>
-                      {semesters.map((semester) => (
-                        <SelectItem key={semester} value={semester}>
-                          {semester}
-                        </SelectItem>
-                      ))}
+                      {availableSemesters.length > 0 ? (
+                        availableSemesters.map((semester: string) => (
+                          <SelectItem key={semester} value={semester}>
+                            {semester}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <div className="p-4 text-gray-500 text-center">
+                          Select a course first to see available semesters
+                        </div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
