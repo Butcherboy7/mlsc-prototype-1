@@ -29,28 +29,47 @@ Mentora helps you learn faster with AI-powered conversations, spaced repetition 
 4. **Click Run** - That's it! Your app will start automatically
 
 ### Option 2: Download and Run Locally  
-1. **Download the code**:
-   ```bash
-   # Download as ZIP from Replit or use git if available
-   # Extract the files to a folder
-   ```
 
-2. **Install Node.js** (if you don't have it):
-   - Go to [nodejs.org](https://nodejs.org) 
-   - Download and install (choose LTS version)
+#### Step 1: Prerequisites
+- **Node.js 18 or newer** (IMPORTANT: Check with `node --version`)
+- **Download from**: [nodejs.org](https://nodejs.org) (choose LTS version)
 
-3. **Open terminal in the project folder and run**:
-   ```bash
-   npm install
-   npm run dev
-   ```
+#### Step 2: Download Project
+- Download ZIP from Replit (or clone if you have git)
+- Extract to a folder
+- Open terminal/command prompt in that folder
 
-4. **Set up your API key**:
-   - Create a file called `.env` in the main folder
-   - Add this line: `VITE_GEMINI_API_KEY=your_api_key_here`
-   - Replace `your_api_key_here` with your actual API key
+#### Step 3: Install Dependencies  
+```bash
+npm install
+```
+If you get errors, try:
+```bash
+# Clear npm cache and try again
+npm cache clean --force
+npm install
+```
 
-5. **Open your browser** and go to `http://localhost:5000`
+#### Step 4: Set up API Key
+Create a file called `.env` in the main folder with:
+```
+VITE_GEMINI_API_KEY=your_actual_api_key_here
+```
+
+#### Step 5: Start the App
+```bash
+# For Windows:
+npm run dev
+
+# If above fails on Windows, try:
+npx cross-env NODE_ENV=development npx tsx server/index.ts
+
+# For Mac/Linux:  
+npm run dev
+```
+
+#### Step 6: Open App
+Go to `http://localhost:5000` in your browser
 
 ## 🎯 How to Use
 
@@ -78,18 +97,77 @@ Mentora helps you learn faster with AI-powered conversations, spaced repetition 
 
 ## 🔧 Need Help?
 
-### Common Issues
-**"Can't find API key"** - Make sure you added `VITE_GEMINI_API_KEY` in Secrets (on Replit) or `.env` file (locally)
+### Common Local Setup Issues
 
-**"App won't start"** - Try refreshing the page or clicking Stop/Run again  
+#### ❌ "npm install" fails
+**Fix**: Make sure you have Node.js 18+ installed
+```bash
+node --version  # Should show v18.x.x or higher
+npm --version   # Should work without errors
+```
+If outdated, download latest from [nodejs.org](https://nodejs.org)
 
-**"AI not responding"** - Check your Gemini API key is valid and you have free quota
+#### ❌ "tsx command not found" or "NODE_ENV not recognized"  
+**Fix for Windows**: Install cross-env first
+```bash
+npm install -g cross-env
+npm install -g tsx
+```
+Then use: `npx cross-env NODE_ENV=development npx tsx server/index.ts`
+
+#### ❌ "Cannot find module" errors
+**Fix**: Delete node_modules and reinstall
+```bash
+rm -rf node_modules package-lock.json  # Mac/Linux
+# OR for Windows: delete node_modules folder manually
+npm install
+```
+
+#### ❌ "Port 5000 already in use"
+**Fix**: Kill the process or use different port
+```bash
+# Kill process on port 5000 (Mac/Linux)
+lsof -ti:5000 | xargs kill -9
+
+# Windows
+netstat -ano | findstr :5000
+# Then kill the PID shown
+```
+
+#### ❌ "Can't find API key" 
+**Fix**: Make sure your `.env` file is in the ROOT folder (same level as package.json)
+```
+mentora/
+├── .env              ← HERE (not in client/ or server/)
+├── package.json
+├── client/
+└── server/
+```
+
+#### ❌ "AI not responding"
+**Fix**: Check your Gemini API key
+1. Test your key at [Google AI Studio](https://aistudio.google.com/app/apikey)
+2. Make sure you have free quota remaining
+3. Verify the key in your `.env` file has no extra spaces
 
 ### Getting Your Free Gemini API Key
 1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Sign in with Google account  
 3. Click "Create API key"
-4. Copy the key and paste it in Secrets or .env file
+4. Copy the key and paste it in `.env` file
+
+### Still Having Issues?
+Try this simple test:
+```bash
+# Test if Node.js works
+node -e "console.log('Node.js works!')"
+
+# Test if npm works  
+npm -v
+
+# Test if your .env file is correct
+node -e "require('dotenv').config(); console.log(process.env.VITE_GEMINI_API_KEY ? 'API key found' : 'API key missing')"
+```
 
 ## 🎯 What's Included
 
