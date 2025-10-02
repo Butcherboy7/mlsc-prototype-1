@@ -414,6 +414,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chat API endpoints
+  
+  // Get all chats
+  app.get('/api/chats', async (req, res) => {
+    try {
+      const chats = await storage.getChats();
+      res.json(chats);
+    } catch (error) {
+      console.error('Error fetching chats:', error);
+      res.status(500).json({ error: 'Failed to fetch chats' });
+    }
+  });
+
+  // Get a specific chat
+  app.get('/api/chats/:id', async (req, res) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      const chat = await storage.getChat(chatId);
+      
+      if (!chat) {
+        return res.status(404).json({ error: 'Chat not found' });
+      }
+      
+      res.json(chat);
+    } catch (error) {
+      console.error('Error fetching chat:', error);
+      res.status(500).json({ error: 'Failed to fetch chat' });
+    }
+  });
+
+  // Create a new chat
+  app.post('/api/chats', async (req, res) => {
+    try {
+      const { title, mode } = req.body;
+      
+      if (!title || !mode) {
+        return res.status(400).json({ error: 'Title and mode are required' });
+      }
+      
+      const chat = await storage.createChat({ title, mode });
+      res.json(chat);
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      res.status(500).json({ error: 'Failed to create chat' });
+    }
+  });
+
+  // Update a chat
+  app.put('/api/chats/:id', async (req, res) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      const { title } = req.body;
+      
+      if (!title) {
+        return res.status(400).json({ error: 'Title is required' });
+      }
+      
+      const chat = await storage.updateChat(chatId, title);
+      res.json(chat);
+    } catch (error) {
+      console.error('Error updating chat:', error);
+      res.status(500).json({ error: 'Failed to update chat' });
+    }
+  });
+
+  // Delete a chat
+  app.delete('/api/chats/:id', async (req, res) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      await storage.deleteChat(chatId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      res.status(500).json({ error: 'Failed to delete chat' });
+    }
+  });
+
+  // Get messages for a chat
+  app.get('/api/chats/:id/messages', async (req, res) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      const messages = await storage.getMessagesByChat(chatId);
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      res.status(500).json({ error: 'Failed to fetch messages' });
+    }
+  });
+
+  // Create a new message
+  app.post('/api/chats/:id/messages', async (req, res) => {
+    try {
+      const chatId = parseInt(req.params.id);
+      const { role, content } = req.body;
+      
+      if (!role || !content) {
+        return res.status(400).json({ error: 'Role and content are required' });
+      }
+      
+      const message = await storage.createMessage({ chatId, role, content });
+      res.json(message);
+    } catch (error) {
+      console.error('Error creating message:', error);
+      res.status(500).json({ error: 'Failed to create message' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
