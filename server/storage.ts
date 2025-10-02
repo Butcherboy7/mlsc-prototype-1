@@ -5,6 +5,8 @@ import {
   semesters,
   subjects,
   uploads,
+  chats,
+  messages,
   type User, 
   type InsertUser,
   type University,
@@ -14,7 +16,11 @@ import {
   type Semester,
   type InsertSemester,
   type Upload,
-  type InsertUpload
+  type InsertUpload,
+  type Chat,
+  type InsertChat,
+  type Message,
+  type InsertMessage
 } from "@shared/schema";
 
 // modify the interface with any CRUD methods
@@ -36,6 +42,18 @@ export interface IStorage {
   getSyllabusData(universityId: number, courseId: number, semesterId: number): Promise<any>;
   createUpload(upload: InsertUpload): Promise<Upload>;
   updateUploadStatus(uploadId: number, status: string, parsedData?: any): Promise<Upload>;
+  
+  // Chat methods
+  getChats(): Promise<Chat[]>;
+  getChat(id: number): Promise<Chat | undefined>;
+  createChat(chat: InsertChat): Promise<Chat>;
+  updateChat(id: number, title: string): Promise<Chat>;
+  deleteChat(id: number): Promise<void>;
+  
+  // Message methods
+  getMessagesByChat(chatId: number): Promise<Message[]>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  deleteMessagesByChat(chatId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -44,12 +62,16 @@ export class MemStorage implements IStorage {
   private courses: Map<number, Course>;
   private semesters: Map<number, Semester>;
   private uploads: Map<number, Upload>;
+  private chats: Map<number, Chat>;
+  private messages: Map<number, Message>;
   private currentId: {
     users: number;
     universities: number;
     courses: number;
     semesters: number;
     uploads: number;
+    chats: number;
+    messages: number;
   };
 
   constructor() {
@@ -58,12 +80,16 @@ export class MemStorage implements IStorage {
     this.courses = new Map();
     this.semesters = new Map();
     this.uploads = new Map();
+    this.chats = new Map();
+    this.messages = new Map();
     this.currentId = {
       users: 1,
       universities: 1,
       courses: 1,
       semesters: 1,
       uploads: 1,
+      chats: 1,
+      messages: 1,
     };
     
     // Seed some sample universities
@@ -241,6 +267,87 @@ export class MemStorage implements IStorage {
     
     this.uploads.set(uploadId, updatedUpload);
     return updatedUpload;
+  }
+
+  // Chat methods
+  async getChats(): Promise<Chat[]> {
+    return Array.from(this.chats.values()).sort((a, b) => 
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
+  }
+
+  async getChat(id: number): Promise<Chat | undefined> {
+    return this.chats.get(id);
+  }
+
+  async createChat(insertChat: InsertChat): Promise<Chat> {
+    const id = this.currentId.chats++;
+    const now = new Date();
+    const chat: Chat = { 
+      ...insertChat, 
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.chats.set(id, chat);
+    return chat;
+  }
+
+  async updateChat(id: number, title: string): Promise<Chat> {
+    const chat = this.chats.get(id);
+    if (!chat) {
+      throw new Error('Chat not found');
+    }
+    
+    const updatedChat: Chat = {
+      ...chat,
+      title,
+      updatedAt: new Date(),
+    };
+    
+    this.chats.set(id, updatedChat);
+    return updatedChat;
+  }
+
+  async deleteChat(id: number): Promise<void> {
+    this.chats.delete(id);
+    // Also delete all messages for this chat
+    const messagesToDelete = Array.from(this.messages.values())
+      .filter(msg => msg.chatId === id)
+      .map(msg => msg.id);
+    messagesToDelete.forEach(msgId => this.messages.delete(msgId));
+  }
+
+  // Message methods
+  async getMessagesByChat(chatId: number): Promise<Message[]> {
+    return Array.from(this.messages.values())
+      .filter(msg => msg.chatId === chatId)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }
+
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const id = this.currentId.messages++;
+    const message: Message = { 
+      ...insertMessage, 
+      id,
+      timestamp: new Date()
+    };
+    this.messages.set(id, message);
+    
+    // Update the chat's updatedAt timestamp
+    const chat = this.chats.get(insertMessage.chatId);
+    if (chat) {
+      this.chats.set(chat.id, { ...chat, updatedAt: new Date() });
+    }
+    
+    return message;
+  }
+
+  async deleteMessagesByChat(chatId: number): Promise<void> {
+    const messagesToDelete = Array.from(this.messages.values())
+      .filter(msg => msg.chatId === chatId)
+      .map(msg => msg.id);
+    messagesToDelete.forEach(msgId => this.messages.delete(msgId));
   }
 }
 
