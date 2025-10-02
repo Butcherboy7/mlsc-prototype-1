@@ -71,6 +71,23 @@ export const uploads = pgTable("uploads", {
   status: text("status").notNull().default("pending"), // "pending", "processed", "confirmed"
 });
 
+// Chat tables for AI personal chatbot
+export const chats = pgTable("chats", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  mode: text("mode").notNull(), // The study mode selected for this chat
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  chatId: integer("chat_id").references(() => chats.id, { onDelete: 'cascade' }).notNull(),
+  role: text("role").notNull(), // 'user' or 'assistant'
+  content: text("content").notNull(),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 // Existing user schema
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -110,3 +127,12 @@ export type ExamCalendar = typeof examCalendar.$inferSelect;
 
 export type InsertUpload = z.infer<typeof insertUploadSchema>;
 export type Upload = typeof uploads.$inferSelect;
+
+export const insertChatSchema = createInsertSchema(chats).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, timestamp: true });
+
+export type InsertChat = z.infer<typeof insertChatSchema>;
+export type Chat = typeof chats.$inferSelect;
+
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
