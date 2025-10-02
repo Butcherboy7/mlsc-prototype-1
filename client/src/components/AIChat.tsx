@@ -14,7 +14,10 @@ import {
   Download,
   Save,
   FileText,
-  BookOpen
+  BookOpen,
+  Plus,
+  MessageSquare,
+  Trash2
 } from 'lucide-react';
 import { geminiService } from '@/lib/gemini';
 import { extractTextFromImage } from '@/lib/ocr';
@@ -26,11 +29,19 @@ import VideoSearchButton from '@/components/VideoSearchButton';
 import { useToast } from '@/hooks/use-toast';
 
 interface Message {
-  id: string;
+  id: number;
+  chatId: number;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  imageAnalysis?: string;
+}
+
+interface Chat {
+  id: number;
+  title: string;
+  mode: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface AIChatProps {
@@ -47,6 +58,9 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [testModalContent, setTestModalContent] = useState('');
+  const [chats, setChats] = useState<Chat[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<number | null>(null);
+  const [showChatList, setShowChatList] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -62,6 +76,156 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
   useEffect(() => {
     setSelectedMode(initialMode);
   }, [initialMode]);
+
+  // Load chats when mode is selected
+  useEffect(() => {
+    if (selectedMode) {
+      loadChats();
+    }
+  }, [selectedMode]);
+
+  // Load messages when chat is selected
+  useEffect(() => {
+    if (currentChatId) {
+      loadMessages(currentChatId);
+    } else {
+      setMessages([]);
+    }
+  }, [currentChatId]);
+
+  const loadChats = async () => {
+    try {
+      const response = await fetch('/api/chats');
+      if (!response.ok) throw new Error('Failed to load chats');
+      const allChats: Chat[] = await response.json();
+      
+      // Filter chats by the selected mode
+      const filteredChats = allChats
+        .filter(chat => chat.mode === selectedMode)
+        .map(chat => ({
+          ...chat,
+          createdAt: new Date(chat.createdAt),
+          updatedAt: new Date(chat.updatedAt)
+        }));
+      
+      setChats(filteredChats);
+      
+      // Auto-select the most recent chat if one exists
+      if (filteredChats.length > 0 && !currentChatId) {
+        setCurrentChatId(filteredChats[0].id);
+      }
+    } catch (error) {
+      console.error('Error loading chats:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load chats.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const loadMessages = async (chatId: number) => {
+    try {
+      const response = await fetch(`/api/chats/${chatId}/messages`);
+      if (!response.ok) throw new Error('Failed to load messages');
+      const loadedMessages: Message[] = await response.json();
+      
+      setMessages(loadedMessages.map(msg => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp)
+      })));
+    } catch (error) {
+      console.error('Error loading messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const createNewChat = async () => {
+    if (!selectedMode) return;
+    
+    try {
+      const response = await fetch('/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `New ${selectedMode} Chat`,
+          mode: selectedMode
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to create chat');
+      const newChat: Chat = await response.json();
+      
+      setChats(prev => [{
+        ...newChat,
+        createdAt: new Date(newChat.createdAt),
+        updatedAt: new Date(newChat.updatedAt)
+      }, ...prev]);
+      setCurrentChatId(newChat.id);
+      setMessages([]);
+      
+      toast({
+        title: "New Chat Created",
+        description: "Start a new conversation!"
+      });
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create new chat.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteChat = async (chatId: number) => {
+    try {
+      const response = await fetch(`/api/chats/${chatId}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete chat');
+      
+      setChats(prev => prev.filter(chat => chat.id !== chatId));
+      
+      if (currentChatId === chatId) {
+        const remainingChats = chats.filter(chat => chat.id !== chatId);
+        setCurrentChatId(remainingChats.length > 0 ? remainingChats[0].id : null);
+      }
+      
+      toast({
+        title: "Chat Deleted",
+        description: "The conversation has been removed."
+      });
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete chat.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const saveMessageToDatabase = async (chatId: number, role: 'user' | 'assistant', content: string): Promise<Message> => {
+    const response = await fetch(`/api/chats/${chatId}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role, content })
+    });
+    
+    if (!response.ok) throw new Error('Failed to save message');
+    const savedMessage: Message = await response.json();
+    
+    return {
+      ...savedMessage,
+      timestamp: new Date(savedMessage.timestamp)
+    };
+  };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -112,57 +276,88 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
   const handleSend = async () => {
     if (!input.trim() || isLoading || !selectedMode) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    };
+    // Create a new chat if one doesn't exist
+    if (!currentChatId) {
+      await createNewChat();
+      // Wait a bit for the chat to be created
+      await new Promise(resolve => setTimeout(resolve, 500));
+      // The useEffect will reload and set currentChatId
+      if (!currentChatId) {
+        toast({
+          title: "Error",
+          description: "Failed to create chat. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
 
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
+    const userContent = input.trim();
     setInput('');
     setIsLoading(true);
 
     try {
+      // Save user message to database
+      const savedUserMessage = await saveMessageToDatabase(currentChatId!, 'user', userContent);
+      setMessages(prev => [...prev, savedUserMessage]);
+
+      // Prepare messages for AI
       const geminiMessages = [
         {
           role: 'system' as const,
           content: geminiService.getSystemMessage(selectedMode)
         },
-        ...updatedMessages.map(msg => ({
+        ...messages.map(msg => ({
           role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
           content: msg.content
-        }))
+        })),
+        {
+          role: 'user' as const,
+          content: userContent
+        }
       ];
 
       const response = await geminiService.chat(geminiMessages, true);
 
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
+      // Save assistant response to database
+      const savedAssistantMessage = await saveMessageToDatabase(currentChatId!, 'assistant', response);
+      setMessages(prev => [...prev, savedAssistantMessage]);
+      
+      // Update chat title if this is the first message
+      if (messages.length === 0) {
+        updateChatTitle(currentChatId!, userContent);
+      }
     } catch (error) {
       console.error('AI Chat error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
-      
       toast({
         title: "Error",
-        description: "Failed to get AI response. Please try again.",
+        description: "Failed to send message. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateChatTitle = async (chatId: number, firstMessage: string) => {
+    try {
+      const title = firstMessage.slice(0, 50) + (firstMessage.length > 50 ? '...' : '');
+      const response = await fetch(`/api/chats/${chatId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      });
+      
+      if (response.ok) {
+        const updatedChat: Chat = await response.json();
+        setChats(prev => prev.map(chat => 
+          chat.id === chatId 
+            ? { ...updatedChat, createdAt: new Date(updatedChat.createdAt), updatedAt: new Date(updatedChat.updatedAt) }
+            : chat
+        ));
+      }
+    } catch (error) {
+      console.error('Error updating chat title:', error);
     }
   };
 
@@ -200,64 +395,19 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
   const handleModeSelect = (mode: string) => {
     setSelectedMode(mode);
     setMessages([]);
+    setCurrentChatId(null);
   };
 
   const handleModeChange = (mode: string) => {
     setSelectedMode(null);
     setMessages([]);
+    setCurrentChatId(null);
   };
 
   const handleQuickAction = async (action: string, prompt: string) => {
     if (!selectedMode) return;
-    
     setInput(prompt);
-    
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: prompt,
-      timestamp: new Date(),
-    };
-
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    setInput('');
-    setIsLoading(true);
-
-    try {
-      const geminiMessages = [
-        {
-          role: 'system' as const,
-          content: geminiService.getSystemMessage(selectedMode)
-        },
-        ...updatedMessages.map(msg => ({
-          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
-          content: msg.content
-        }))
-      ];
-
-      const response = await geminiService.chat(geminiMessages, true);
-
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response,
-        timestamp: new Date(),
-      };
-
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('AI Chat error:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
+    setTimeout(() => handleSend(), 100);
   };
 
   const openTestKnowledge = (content: string) => {
@@ -316,7 +466,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto p-4 space-y-6">
+      <div className="max-w-6xl mx-auto p-4 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           {onBack && (
@@ -341,19 +491,100 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-4 gap-4"
           >
+            {/* Chat List Sidebar */}
+            <Card className="md:col-span-1 h-fit max-h-[700px] overflow-hidden">
+              <CardHeader>
+                <CardTitle className="text-sm flex items-center justify-between">
+                  <span>Conversations</span>
+                  <Button size="sm" onClick={createNewChat} className="h-8 w-8 p-0">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-2 space-y-2 max-h-[600px] overflow-y-auto">
+                {chats.length === 0 ? (
+                  <div className="text-center text-muted-foreground text-sm py-4">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>No chats yet</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={createNewChat}
+                      className="mt-2"
+                    >
+                      Create First Chat
+                    </Button>
+                  </div>
+                ) : (
+                  chats.map((chat) => (
+                    <div
+                      key={chat.id}
+                      className={`p-3 rounded-lg cursor-pointer transition-all hover:bg-muted/50 ${
+                        currentChatId === chat.id ? 'bg-primary/10 border-2 border-primary' : 'bg-muted/20'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div 
+                          className="flex-1 min-w-0"
+                          onClick={() => setCurrentChatId(chat.id)}
+                        >
+                          <p className="text-sm font-medium truncate">{chat.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(chat.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteChat(chat.id);
+                          }}
+                          className="h-6 w-6 p-0 opacity-60 hover:opacity-100 hover:text-destructive"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+
             {/* Chat Messages */}
-            <Card className="min-h-[600px] sm:min-h-[700px] flex flex-col">
+            <Card className="md:col-span-3 min-h-[600px] sm:min-h-[700px] flex flex-col">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Bot className="w-5 h-5" />
                   <span>Conversation</span>
                   <Badge variant="secondary">{selectedMode}</Badge>
+                  {currentChatId && (
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {chats.find(c => c.id === currentChatId)?.title}
+                    </span>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
                 <div className="flex-1 space-y-4 mb-4 max-h-[450px] sm:max-h-[550px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background mobile-optimized">
-                  {messages.length === 0 && (
+                  {!currentChatId && (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                      <p>Create a new chat to start a conversation!</p>
+                      <Button 
+                        size="lg" 
+                        onClick={createNewChat}
+                        className="mt-4"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        New Chat
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {currentChatId && messages.length === 0 && (
                     <div className="text-center text-muted-foreground py-8">
                       <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
                       <p>Start a conversation with your AI study assistant!</p>
@@ -401,7 +632,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => saveToNotes(message.content, message.id)}
+                                    onClick={() => saveToNotes(message.content, message.id.toString())}
                                     className="h-8 px-2 sm:px-3 text-xs transition-all duration-200 hover:scale-105"
                                   >
                                     <Save className="w-3 h-3 mr-1" />
@@ -411,7 +642,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => exportResponseToPDF(message.content, message.id)}
+                                    onClick={() => exportResponseToPDF(message.content, message.id.toString())}
                                     className="h-8 px-2 sm:px-3 text-xs transition-all duration-200 hover:scale-105"
                                   >
                                     <FileText className="w-3 h-3 mr-1" />
@@ -458,60 +689,62 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                 </div>
 
                 {/* Input Area */}
-                <div className="space-y-3">
-                  {/* Quick Action Buttons */}
-                  <QuickActionButtons 
-                    onAction={handleQuickAction}
-                    disabled={isLoading}
-                    currentMessage={input}
-                  />
-                  
-                  <div className="flex space-x-2">
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleImageUpload}
-                      accept="image/*"
-                      className="hidden"
+                {currentChatId && (
+                  <div className="space-y-3">
+                    {/* Quick Action Buttons */}
+                    <QuickActionButtons 
+                      onAction={handleQuickAction}
+                      disabled={isLoading}
+                      currentMessage={input}
                     />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={isAnalyzingImage}
-                      className="transition-all duration-200 hover:scale-105"
-                    >
-                      {isAnalyzingImage ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <ImageIcon className="w-4 h-4" />
-                      )}
-                    </Button>
+                    
+                    <div className="flex space-x-2">
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageUpload}
+                        accept="image/*"
+                        className="hidden"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isAnalyzingImage}
+                        className="transition-all duration-200 hover:scale-105"
+                      >
+                        {isAnalyzingImage ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ImageIcon className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
+                    
+                    <div className="flex space-x-2">
+                      <Textarea
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={`Ask your ${selectedMode} assistant anything...`}
+                        className="min-h-[80px] sm:min-h-[60px] resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20 mobile-text-sm"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend();
+                          }
+                        }}
+                      />
+                      <Button 
+                        onClick={handleSend} 
+                        disabled={!input.trim() || isLoading}
+                        size="lg"
+                        className="transition-all duration-200 hover:scale-105 min-w-[3rem]"
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <div className="flex space-x-2">
-                    <Textarea
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      placeholder={`Ask your ${selectedMode} assistant anything...`}
-                      className="min-h-[80px] sm:min-h-[60px] resize-none transition-all duration-200 focus:ring-2 focus:ring-primary/20 mobile-text-sm"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSend();
-                        }
-                      }}
-                    />
-                    <Button 
-                      onClick={handleSend} 
-                      disabled={!input.trim() || isLoading}
-                      size="lg"
-                      className="transition-all duration-200 hover:scale-105 min-w-[3rem]"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
