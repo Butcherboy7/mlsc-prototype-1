@@ -179,11 +179,7 @@ export class MemStorage implements IStorage {
 
   // Institution methods
   async getUniversities(): Promise<University[]> {
-    return Array.from(this.universities.values()).map(uni => ({
-      ...uni,
-      country: uni.country ?? null,
-      city: uni.city ?? null
-    }));
+    return Array.from(this.universities.values());
   }
 
   async createUniversity(insertUniversity: InsertUniversity): Promise<University> {
@@ -195,13 +191,7 @@ export class MemStorage implements IStorage {
 
   async getCoursesByUniversity(universityId: number): Promise<Course[]> {
     return Array.from(this.courses.values())
-      .filter(course => course.universityId === universityId)
-      .map(course => ({
-        ...course,
-        code: course.code ?? null,
-        universityId: course.universityId ?? null,
-        department: course.department ?? null
-      }));
+      .filter(course => course.universityId === universityId);
   }
 
   async createCourse(insertCourse: InsertCourse): Promise<Course> {
