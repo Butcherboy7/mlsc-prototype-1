@@ -78,7 +78,7 @@ Document Content to Parse:
 ${fileContent}`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash-001",
+      model: "gemini-2.5-flash",
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -144,7 +144,7 @@ export async function chat(messages: Message[]): Promise<string> {
     }).join('\n\n');
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash-001",
+      model: "gemini-2.5-flash",
       config: {
         temperature: 0.7,
         topK: 40,
