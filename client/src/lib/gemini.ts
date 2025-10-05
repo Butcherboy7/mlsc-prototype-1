@@ -1,102 +1,65 @@
 import { Message } from '../types';
 
-interface GeminiResponse {
-  candidates: Array<{
-    content: {
-      parts: Array<{
-        text: string;
-      }>;
-    };
-  }>;
-}
-
-// Context memory for each session
 const contextStore = new Map<string, Message[]>();
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
-const BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-
 export const geminiService = {
-  getApiKey(): string {
-    return GEMINI_API_KEY;
-  },
-
   async chat(messages: Message[], includeHistory: boolean = true): Promise<string> {
     try {
-      // Convert messages to Gemini format
-      const prompt = messages.map(msg => {
-        if (msg.role === 'system') {
-          return `System: ${msg.content}`;
-        } else if (msg.role === 'user') {
-          return `User: ${msg.content}`;
-        } else {
-          return `Assistant: ${msg.content}`;
-        }
-      }).join('\n\n');
-
-      const response = await fetch(`${BASE_URL}/models/gemini-1.5-flash-latest:generateContent?key=${this.getApiKey()}`, {
+      const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1000,
-          }
-        }),
+        body: JSON.stringify({ messages }),
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        throw new Error(`Server error: ${response.status}`);
       }
 
-      const data: GeminiResponse = await response.json();
-      return data.candidates[0]?.content?.parts[0]?.text || 'No response generated.';
+      const data = await response.json();
+      return data.response || 'No response generated.';
     } catch (error) {
-      console.error('Gemini API Error:', error);
+      console.error('Chat API Error:', error);
       return 'I apologize, but I encountered an error. Please try again later.';
     }
   },
 
   async contextualChat(userMessage: string, mode: string, sessionId: string): Promise<string> {
-    // Get or create context for this session
     if (!contextStore.has(sessionId)) {
       contextStore.set(sessionId, []);
     }
     
     const context = contextStore.get(sessionId)!;
     
-    // Add system message based on mode
-    const systemMessage = this.getSystemMessage(mode);
-    
-    // Build conversation with context
-    const messages: Message[] = [
-      { role: 'system', content: systemMessage },
-      ...context,
-      { role: 'user', content: userMessage }
-    ];
-    
     try {
-      const response = await this.chat(messages);
+      const response = await fetch('/api/ai/contextual-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          message: userMessage, 
+          mode, 
+          sessionId 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const aiResponse = data.response;
       
-      // Update context
       context.push({ role: 'user', content: userMessage });
-      context.push({ role: 'assistant', content: response });
+      context.push({ role: 'assistant', content: aiResponse });
       
-      // Keep only last 10 messages for context
       if (context.length > 10) {
         context.splice(0, context.length - 10);
       }
       
-      return response;
+      return aiResponse;
     } catch (error) {
       console.error('Contextual chat error:', error);
       return 'I apologize, but I encountered an error. Please try again.';
@@ -116,17 +79,21 @@ export const geminiService = {
   },
 
   async summarizePDF(content: string, type: 'short' | 'detailed' = 'short'): Promise<string> {
-    const prompt = type === 'short' 
-      ? `Provide a concise summary of this document in bullet points (max 200 words). Focus on key concepts, main ideas, and important details:\n\n${content}`
-      : `Provide a comprehensive, detailed summary of this document. Analyze the core content and themes, ignoring metadata or document structure. Explain the main concepts like a tutor teaching a student. Include:\n\n1. Overview of main topics\n2. Key concepts and definitions\n3. Important details and examples\n4. Structure with clear headings\n5. Educational insights\n\nDocument content:\n\n${content}`;
-
-    const messages: Message[] = [
-      { role: 'system', content: 'You are an expert document analyzer and educational content creator. Focus on the educational value and core concepts, not document metadata.' },
-      { role: 'user', content: prompt }
-    ];
-
     try {
-      return await this.chat(messages);
+      const response = await fetch('/api/ai/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content, type }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response;
     } catch (error) {
       console.error('PDF summarization error:', error);
       return 'Unable to generate summary. Please try again.';
@@ -134,16 +101,25 @@ export const geminiService = {
   },
 
   async generateNotes(topic: string, context?: string): Promise<string> {
-    const prompt = context 
-      ? `Create comprehensive study notes for: ${topic}\n\nAdditional context: ${context}`
-      : `Create comprehensive study notes for: ${topic}`;
+    try {
+      const response = await fetch('/api/ai/notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ topic, context }),
+      });
 
-    const messages: Message[] = [
-      { role: 'system', content: 'You are an expert educator. Create well-structured, comprehensive study notes with clear headings, bullet points, and examples.' },
-      { role: 'user', content: prompt }
-    ];
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
 
-    return await this.chat(messages);
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('Notes generation error:', error);
+      return 'Unable to generate notes. Please try again.';
+    }
   },
 
   async generateNote(topic: string): Promise<{ title: string; content: string }> {
@@ -155,24 +131,46 @@ export const geminiService = {
   },
 
   async helpWithCode(code: string, language: string, problem: string): Promise<string> {
-    const prompt = `Help with this ${language} code issue: ${problem}\n\nCode:\n\`\`\`${language}\n${code}\n\`\`\``;
-    
-    const messages: Message[] = [
-      { role: 'system', content: 'You are a skilled programming mentor. Help debug code, explain issues, and provide solutions with clear explanations.' },
-      { role: 'user', content: prompt }
-    ];
+    try {
+      const response = await fetch('/api/ai/help-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code, language, problem }),
+      });
 
-    return await this.chat(messages);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('Code help error:', error);
+      return 'Unable to help with code. Please try again.';
+    }
   },
 
   async explainConcept(concept: string, level: string = 'intermediate'): Promise<string> {
-    const prompt = `Explain this concept at a ${level} level: ${concept}`;
-    
-    const messages: Message[] = [
-      { role: 'system', content: 'You are a patient tutor. Provide clear, step-by-step explanations with examples.' },
-      { role: 'user', content: prompt }
-    ];
+    try {
+      const response = await fetch('/api/ai/explain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ concept, level }),
+      });
 
-    return await this.chat(messages);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('Concept explanation error:', error);
+      return 'Unable to explain concept. Please try again.';
+    }
   }
 };

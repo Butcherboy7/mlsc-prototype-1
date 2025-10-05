@@ -3,7 +3,15 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from 'multer';
 import fetch from 'node-fetch';
-import { parseSyllabusWithAI } from './lib/gemini';
+import { 
+  parseSyllabusWithAI, 
+  chat, 
+  contextualChat, 
+  summarizePDF, 
+  generateNotes, 
+  helpWithCode, 
+  explainConcept 
+} from './lib/gemini';
 
 // Configure multer for file uploads
 const upload = multer({ 
@@ -518,6 +526,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error creating message:', error);
       res.status(500).json({ error: 'Failed to create message' });
+    }
+  });
+
+  // AI API endpoints
+  app.post('/api/ai/chat', async (req, res) => {
+    try {
+      const { messages } = req.body;
+      
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: 'Messages array is required' });
+      }
+      
+      const response = await chat(messages);
+      res.json({ response });
+    } catch (error) {
+      console.error('Error in chat endpoint:', error);
+      res.status(500).json({ error: 'Failed to process chat request' });
+    }
+  });
+
+  app.post('/api/ai/contextual-chat', async (req, res) => {
+    try {
+      const { message, mode, sessionId } = req.body;
+      
+      if (!message || !mode || !sessionId) {
+        return res.status(400).json({ error: 'Message, mode, and sessionId are required' });
+      }
+      
+      const response = await contextualChat(message, mode, sessionId);
+      res.json({ response });
+    } catch (error) {
+      console.error('Error in contextual chat endpoint:', error);
+      res.status(500).json({ error: 'Failed to process contextual chat request' });
+    }
+  });
+
+  app.post('/api/ai/summarize', async (req, res) => {
+    try {
+      const { content, type } = req.body;
+      
+      if (!content) {
+        return res.status(400).json({ error: 'Content is required' });
+      }
+      
+      const response = await summarizePDF(content, type || 'short');
+      res.json({ response });
+    } catch (error) {
+      console.error('Error in summarize endpoint:', error);
+      res.status(500).json({ error: 'Failed to summarize content' });
+    }
+  });
+
+  app.post('/api/ai/notes', async (req, res) => {
+    try {
+      const { topic, context } = req.body;
+      
+      if (!topic) {
+        return res.status(400).json({ error: 'Topic is required' });
+      }
+      
+      const response = await generateNotes(topic, context);
+      res.json({ response });
+    } catch (error) {
+      console.error('Error in notes endpoint:', error);
+      res.status(500).json({ error: 'Failed to generate notes' });
+    }
+  });
+
+  app.post('/api/ai/help-code', async (req, res) => {
+    try {
+      const { code, language, problem } = req.body;
+      
+      if (!code || !language || !problem) {
+        return res.status(400).json({ error: 'Code, language, and problem are required' });
+      }
+      
+      const response = await helpWithCode(code, language, problem);
+      res.json({ response });
+    } catch (error) {
+      console.error('Error in help-code endpoint:', error);
+      res.status(500).json({ error: 'Failed to help with code' });
+    }
+  });
+
+  app.post('/api/ai/explain', async (req, res) => {
+    try {
+      const { concept, level } = req.body;
+      
+      if (!concept) {
+        return res.status(400).json({ error: 'Concept is required' });
+      }
+      
+      const response = await explainConcept(concept, level || 'intermediate');
+      res.json({ response });
+    } catch (error) {
+      console.error('Error in explain endpoint:', error);
+      res.status(500).json({ error: 'Failed to explain concept' });
     }
   });
 

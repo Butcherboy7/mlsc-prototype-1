@@ -24,7 +24,7 @@ Mentora helps you learn faster with AI-powered conversations, spaced repetition 
    - Copy the key
 3. **Add your API key**:
    - Go to "Secrets" tab in Replit
-   - Add key: `VITE_GEMINI_API_KEY`
+   - Add key: `GEMINI_API_KEY`
    - Paste your API key as the value
 4. **Click Run** - That's it! Your app will start automatically
 
@@ -53,7 +53,7 @@ npm install
 #### Step 4: Set up API Key
 Create a file called `.env` in the main folder with:
 ```
-VITE_GEMINI_API_KEY=your_actual_api_key_here
+GEMINI_API_KEY=your_actual_api_key_here
 ```
 
 #### Step 5: Start the App
@@ -166,7 +166,7 @@ node -e "console.log('Node.js works!')"
 npm -v
 
 # Test if your .env file is correct
-node -e "require('dotenv').config(); console.log(process.env.VITE_GEMINI_API_KEY ? 'API key found' : 'API key missing')"
+node -e "require('dotenv').config(); console.log(process.env.GEMINI_API_KEY ? 'API key found' : 'API key missing')"
 ```
 
 ## 🎯 What's Included
