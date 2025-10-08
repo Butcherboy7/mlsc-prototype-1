@@ -212,10 +212,10 @@ parameters:
 
 | Name | Role | Contributions |
 |------|------|---------------|
-| **[Mohammed ]** | Full-Stack Developer | Architecture design, AI integration, frontend development |
-| **[Team Member 2]** | UI/UX Designer | Interface design, user experience optimization |
-| **[Team Member 3]** | Backend Developer | API development, database schema, server configuration |
-| **[Team Member 4]** | ML Engineer | AI prompt engineering, model optimization, testing |
+| **[Mohammed Abdullah]** | Full-Stack Developer | Architecture design, AI integration, frontend development |
+| **[Vikranth Mihir]** | UI/UX Designer | Interface design, user experience optimization |
+| **[Naimish Patel]** | Backend Developer | API development, server configuration |
+| **[Mohd Asim]** | ML Engineer | AI prompt engineering, testing |
 
 > 💡 **Note:** Please update this section with your actual team member names and roles.
 
