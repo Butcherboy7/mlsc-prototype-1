@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   MessageCircle, 
   FileText, 
@@ -7,7 +7,9 @@ import {
   User, 
   Upload, 
   Code,
-  Home
+  Home,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +25,7 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   onTabChange,
   dueCardsCount
 }) => {
+  const [isStudyToolsCollapsed, setIsStudyToolsCollapsed] = useState(false);
   const sections = [
     {
       title: 'Main',
@@ -66,36 +69,49 @@ const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-6">
-        {sections.map((section) => (
-          <div key={section.title} className="space-y-2">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-              {section.title}
-            </h3>
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeTab === item.id;
-                
-                return (
-                  <Button
-                    key={item.id}
-                    variant={isActive ? "default" : "ghost"}
-                    className="w-full justify-start relative"
-                    onClick={() => onTabChange(item.id)}
-                  >
-                    <Icon className="w-4 h-4 mr-3" />
-                    {item.label}
-                    {item.badge && (
-                      <Badge variant="destructive" className="ml-auto text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </Button>
-                );
-              })}
+        {sections.map((section) => {
+          const isStudyTools = section.title === 'Study Tools';
+          const isCollapsed = isStudyTools && isStudyToolsCollapsed;
+          
+          return (
+            <div key={section.title} className="space-y-2 border border-border/50 rounded-lg p-3 bg-card/50">
+              <button
+                onClick={() => isStudyTools && setIsStudyToolsCollapsed(!isStudyToolsCollapsed)}
+                className={`w-full flex items-center justify-between text-sm font-semibold text-muted-foreground uppercase tracking-wide ${isStudyTools ? 'cursor-pointer hover:text-foreground transition-colors' : 'cursor-default'}`}
+              >
+                <span>{section.title}</span>
+                {isStudyTools && (
+                  isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+              {!isCollapsed && (
+                <div className="space-y-1 pt-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    
+                    return (
+                      <Button
+                        key={item.id}
+                        variant={isActive ? "default" : "ghost"}
+                        className="w-full justify-start relative"
+                        onClick={() => onTabChange(item.id)}
+                      >
+                        <Icon className="w-4 h-4 mr-3" />
+                        {item.label}
+                        {item.badge && (
+                          <Badge variant="destructive" className="ml-auto text-xs">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </Button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
     </aside>
   );
