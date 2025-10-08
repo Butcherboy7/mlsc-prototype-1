@@ -212,7 +212,7 @@ parameters:
 
 | Name | Role | Contributions |
 |------|------|---------------|
-| **[Your Name]** | Full-Stack Developer | Architecture design, AI integration, frontend development |
+| **[Mohammed ]** | Full-Stack Developer | Architecture design, AI integration, frontend development |
 | **[Team Member 2]** | UI/UX Designer | Interface design, user experience optimization |
 | **[Team Member 3]** | Backend Developer | API development, database schema, server configuration |
 | **[Team Member 4]** | ML Engineer | AI prompt engineering, model optimization, testing |
