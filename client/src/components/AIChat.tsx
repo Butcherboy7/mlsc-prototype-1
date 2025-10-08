@@ -17,7 +17,10 @@ import {
   BookOpen,
   Plus,
   MessageSquare,
-  Trash2
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Menu
 } from 'lucide-react';
 import { geminiService } from '@/lib/gemini';
 import { extractTextFromImage } from '@/lib/ocr';
@@ -61,6 +64,7 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
   const [chats, setChats] = useState<Chat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const [showChatList, setShowChatList] = useState(false);
+  const [isChatListCollapsed, setIsChatListCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -491,19 +495,30 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="grid grid-cols-1 md:grid-cols-4 gap-4"
+            className="flex gap-4 h-[calc(100vh-12rem)]"
           >
             {/* Chat List Sidebar */}
-            <Card className="md:col-span-1 h-fit max-h-[700px] overflow-hidden">
-              <CardHeader>
-                <CardTitle className="text-sm flex items-center justify-between">
-                  <span>Conversations</span>
-                  <Button size="sm" onClick={createNewChat} className="h-8 w-8 p-0">
-                    <Plus className="w-4 h-4" />
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-2 space-y-2 max-h-[600px] overflow-y-auto">
+            {!isChatListCollapsed && (
+              <Card className={`${isChatListCollapsed ? 'hidden' : 'w-full md:w-80'} flex-shrink-0 flex flex-col transition-all duration-300`}>
+                <CardHeader className="flex-shrink-0">
+                  <CardTitle className="text-sm flex items-center justify-between">
+                    <span>Conversations</span>
+                    <div className="flex gap-1">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => setIsChatListCollapsed(true)} 
+                        className="h-8 w-8 p-0 hidden md:flex"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Button size="sm" onClick={createNewChat} className="h-8 w-8 p-0">
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-2 space-y-2 flex-1 overflow-y-auto">
                 {chats.length === 0 ? (
                   <div className="text-center text-muted-foreground text-sm py-4">
                     <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -552,23 +567,34 @@ const AIChat: React.FC<AIChatProps> = ({ selectedMode: initialMode, onBack }) =>
                 )}
               </CardContent>
             </Card>
+            )}
 
             {/* Chat Messages */}
-            <Card className="md:col-span-3 min-h-[600px] sm:min-h-[700px] flex flex-col">
-              <CardHeader>
+            <Card className="flex-1 flex flex-col transition-all duration-300">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle className="flex items-center space-x-2">
+                  {isChatListCollapsed && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setIsChatListCollapsed(false)}
+                      className="h-8 w-8 p-0 mr-2 hidden md:flex"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Bot className="w-5 h-5" />
                   <span>Conversation</span>
                   <Badge variant="secondary">{selectedMode}</Badge>
                   {currentChatId && (
-                    <span className="text-xs text-muted-foreground ml-auto">
+                    <span className="text-xs text-muted-foreground ml-auto truncate max-w-[200px]">
                       {chats.find(c => c.id === currentChatId)?.title}
                     </span>
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col">
-                <div className="flex-1 space-y-4 mb-4 max-h-[450px] sm:max-h-[550px] overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background mobile-optimized">
+              <CardContent className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 space-y-4 mb-4 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-background">
                   {!currentChatId && (
                     <div className="text-center text-muted-foreground py-8">
                       <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
