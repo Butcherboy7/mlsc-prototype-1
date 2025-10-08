@@ -294,67 +294,8 @@ parameters:
 ## 🎥 Demonstration Video
 
 ### Video Link
-🎬 **[Watch Demo Video](https://youtu.be/YOUR_VIDEO_LINK_HERE)**
+🎬 **[Watch Demo Video](https://drive.google.com/file/d/1Gb0lJcbg6fgTQ9acJKAXbrDlgwniQF7G/view?usp=drivesdk)**
 
-> 📹 *Coming soon! Upload your demo video to YouTube and replace the link above.*
-
-### What the Demo Shows
-1. **Quick Overview** (0:00-0:30)
-   - Platform introduction
-   - Key features walkthrough
-
-2. **AI Chat in Action** (0:30-2:00)
-   - Different study modes
-   - Image upload for problem-solving
-   - Voice input demonstration
-
-3. **Smart Flashcards** (2:00-3:00)
-   - Creating flashcards
-   - Spaced repetition in action
-   - Progress tracking
-
-4. **PDF Summarization** (3:00-4:00)
-   - Uploading a document
-   - AI-generated summary
-   - Saving to notes
-
-5. **Code Laboratory** (4:00-5:00)
-   - Writing code
-   - Multiple language support
-   - Real-time execution
-
-6. **Institution Mode** (5:00-6:00)
-   - University selection
-   - Syllabus parsing
-   - Course dashboard
-
-### Demo Screenshots
-*(See Assets / Screenshots section below)*
-
----
-
-## 🌐 Deployment
-
-### Live Application
-🔗 **[https://your-repl-name.replit.app](https://your-repl-name.replit.app)**
-
-> 🌟 Replace with your actual Replit deployment URL
-
-### Deployment Details
-
-**Platform**: Replit
-- **Server**: Automatically managed by Replit
-- **SSL/TLS**: Automatic HTTPS
-- **CDN**: Global edge network
-- **Uptime**: 99.9% SLA
-- **Auto-scaling**: Handled by Replit infrastructure
-
-**Environment Configuration**:
-```bash
-GEMINI_API_KEY=<Your Google Gemini API Key>
-DATABASE_URL=<Optional PostgreSQL connection string>
-NODE_ENV=production
-```
 
 ### How to Deploy Your Own Instance
 
@@ -593,6 +534,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 **Mentora** - *Your AI-Powered Learning Companion*
 
-[🌐 Live Demo](https://your-repl-name.replit.app) | [📹 Video](https://youtu.be/YOUR_VIDEO) | [📖 Docs](./README.md) | [🐛 Issues](https://github.com/your-username/mentora/issues)
+ [📹 Video](https://drive.google.com/file/d/1Gb0lJcbg6fgTQ9acJKAXbrDlgwniQF7G/view?usp=drivesdk) | [📖 Docs](./README.md) | [🐛 Issues](https://github.com/your-username/mentora/issues)
 
 </div>
