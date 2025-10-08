@@ -407,27 +407,27 @@ pm2 start dist/index.js --name mentora
 ## 🖼️ Assets / Screenshots
 
 ### 1. Landing Page & Dashboard
-![Dashboard](./screenshots/dashboard.png)
+![Dashboard](https://drive.google.com/file/d/1RpW5TShH3VNGXZOz-g2oYBaQCPqEeMN6/view?usp=drive_link)
 > Main dashboard showing quick access to all features and learning statistics
 
 ### 2. AI Chat Interface
-![AI Chat](./screenshots/ai-chat.png)
+![AI Chat](https://drive.google.com/file/d/1Ppt2E5r0d_y2GkxAinuftzcQ_gxNLVcN/view?usp=drive_link)
 > Multi-modal AI chat with collapsible conversation sidebar and mode selection
 
 ### 3. Study Mode Selection
-![Study Modes](./screenshots/study-modes.png)
+![Study Modes](https://drive.google.com/file/d/1MDL8IvR9J87w92H6yzgSC2OV-lNYZs7A/view?usp=drive_link)
 > Five specialized AI tutors: Math, Coding, Business, Law, Literature
 
 ### 4. Smart Flashcards
-![Flashcards](./screenshots/flashcards.png)
+![Flashcards](https://drive.google.com/file/d/1gtWdikF3WNyJ9vghfRZECZmZ5Xy5KGhT/view?usp=drive_link)
 > Spaced repetition flashcard system with progress tracking and difficulty rating
 
 ### 5. AI Notes
-![Notes](./screenshots/notes.png)
+![Notes](https://drive.google.com/file/d/1fIM76uawrOMQ7ov5lEZPuapTiCTHdvSz/view?usp=drive_link)
 > Smart note-taking interface with AI generation and tag-based organization
 
 ### 6. PDF Summarizer
-![PDF Summarizer](./screenshots/pdf-summarizer.png)
+![PDF Summarizer](https://drive.google.com/file/d/1x1sjuPMFUxRM0jfm-pR5VwtYm0ggcgrc/view?usp=drive_link)
 > Upload documents and get instant AI-powered summaries
 
 ### 7. Code Laboratory
