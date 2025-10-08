@@ -403,50 +403,39 @@ pm2 start dist/index.js --name mentora
 - **Career Assessment**: MBTI personality framework
 
 ---
-
 ## 🖼️ Assets / Screenshots
 
 ### 1. Landing Page & Dashboard
-![Dashboard]("C:\Users\ADMIN\Downloads\IMG_4633.PNG")
+![Dashboard](https://drive.google.com/uc?export=view&id=1RpW5TShH3VNGXZOz-g2oYBaQCPqEeMN6)
 > Main dashboard showing quick access to all features and learning statistics
 
 ### 2. AI Chat Interface
-![AI Chat](https://drive.google.com/file/d/1Ppt2E5r0d_y2GkxAinuftzcQ_gxNLVcN/view?usp=drive_link)
+![AI Chat](https://drive.google.com/uc?export=view&id=1Ppt2E5r0d_y2GkxAinuftzcQ_gxNLVcN)
 > Multi-modal AI chat with collapsible conversation sidebar and mode selection
 
 ### 3. Study Mode Selection
-![Study Modes](https://drive.google.com/file/d/1MDL8IvR9J87w92H6yzgSC2OV-lNYZs7A/view?usp=drive_link)
+![Study Modes](https://drive.google.com/uc?export=view&id=1MDL8IvR9J87w92H6yzgSC2OV-lNYZs7A)
 > Five specialized AI tutors: Math, Coding, Business, Law, Literature
 
 ### 4. Smart Flashcards
-![Flashcards](https://drive.google.com/file/d/1gtWdikF3WNyJ9vghfRZECZmZ5Xy5KGhT/view?usp=drive_link)
+![Flashcards](https://drive.google.com/uc?export=view&id=1gtWdikF3WNyJ9vghfRZECZmZ5Xy5KGhT)
 > Spaced repetition flashcard system with progress tracking and difficulty rating
 
 ### 5. AI Notes
-![Notes](https://drive.google.com/file/d/1fIM76uawrOMQ7ov5lEZPuapTiCTHdvSz/view?usp=drive_link)
+![Notes](https://drive.google.com/uc?export=view&id=1fIM76uawrOMQ7ov5lEZPuapTiCTHdvSz)
 > Smart note-taking interface with AI generation and tag-based organization
 
 ### 6. PDF Summarizer
-![PDF Summarizer](https://drive.google.com/file/d/1x1sjuPMFUxRM0jfm-pR5VwtYm0ggcgrc/view?usp=drive_link)
+![PDF Summarizer](https://drive.google.com/uc?export=view&id=1x1sjuPMFUxRM0jfm-pR5VwtYm0ggcgrc)
 > Upload documents and get instant AI-powered summaries
 
 ### 7. Code Laboratory
-![Code Lab](./screenshots/codelab.png)
+![Code Lab](https://drive.google.com/uc?export=view&id=1OdYK_oP9-6JOqO-_dhFRk0vLjgNHt3D0)
 > Interactive coding environment with 40+ language support
 
-### 8. Institution Mode
-![Institution Mode](./screenshots/institution-mode.png)
-> University-specific learning with syllabus parsing and course mapping
-
-### 9. Career Guide
-![Career Guide](./screenshots/career-guide.png)
+### 8. Career Guide
+![Career Guide](https://drive.google.com/uc?export=view&id=17hAPn2A13H38q_lHmcPM-Dd9BuJviw1B)
 > MBTI-based personality assessment with career recommendations
-
-### 10. Mobile Responsive Design
-![Mobile View]("C:\Users\ADMIN\Pictures\Screenshots\IMG_4633.PNG")
-> Fully responsive design optimized for mobile devices
-
-> 📝 **Note:** Please add actual screenshots to a `screenshots/` folder in your project and update the paths above.
 
 ---
 
