@@ -407,7 +407,7 @@ pm2 start dist/index.js --name mentora
 ## 🖼️ Assets / Screenshots
 
 ### 1. Landing Page & Dashboard
-![Dashboard](https://drive.google.com/file/d/1RpW5TShH3VNGXZOz-g2oYBaQCPqEeMN6/view?usp=drive_link)
+![Dashboard]("C:\Users\ADMIN\Downloads\IMG_4633.PNG")
 > Main dashboard showing quick access to all features and learning statistics
 
 ### 2. AI Chat Interface
