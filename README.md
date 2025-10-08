@@ -217,7 +217,6 @@ parameters:
 | **[Naimish Patel]** | Backend Developer | API development, server configuration |
 | **[Mohd Asim]** | ML Engineer | AI prompt engineering, testing |
 
-> 💡 **Note:** Please update this section with your actual team member names and roles.
 
 ### Contributions Breakdown
 
