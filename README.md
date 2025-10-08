@@ -31,7 +31,7 @@ Mentora provides a **unified learning ecosystem** that combines:
 - 🧠 **Smart Flashcards** with scientifically-proven spaced repetition algorithms
 - 📝 **AI Note Generation** for efficient content summarization and organization
 - 📄 **PDF Intelligence** for instant document summarization and analysis
-- 💻 **Interactive Code Laboratory** supporting 40+ programming languages
+- 💻 **Interactive Code Laboratory** supporting 4 programming languages
 - 🏫 **Institution-Specific Learning** with syllabus parsing and course mapping
 - 🎯 **Career Guidance** with MBTI-based personality assessments
 - 📱 **Mobile-First Design** for learning anywhere, anytime
@@ -55,15 +55,9 @@ Mentora provides a **unified learning ecosystem** that combines:
 - Automatic note generation from study materials
 
 💻 **Code Laboratory**
-- Real-time code execution in 40+ languages
+- Real-time code execution in 4 languages
 - Syntax highlighting and error detection
 - Built-in learning assistant for debugging
-
-🏫 **Institution Mode**
-- Search database of 1000+ universities worldwide
-- Syllabus PDF parsing and course extraction
-- Semester-wise subject breakdown
-- Personalized study plans based on curriculum
 
 ---
 
@@ -162,16 +156,7 @@ Server-Side Execution → Output/Error
 Syntax Highlighting → Display Results
 ```
 
-#### 5. Institution Mode Workflow
-```
-University Search → Course Selection → Semester Setup
-    ↓
-Syllabus PDF Upload → Text Extraction
-    ↓
-AI Parsing (Gemini) → Subject Extraction
-    ↓
-Course Structure → Topic Breakdown → Study Dashboard
-```
+
 
 ### Data Flow Architecture
 
@@ -440,10 +425,6 @@ pm2 start dist/index.js --name mentora
 
 ## 🚀 Quick Start Guide
 
-### For Hackathon Judges & Reviewers
-
-**Test the Live App**: [https://your-repl-name.replit.app](https://your-repl-name.replit.app)
-
 **Try These Features**:
 1. ✅ Select "Math Tutor" mode and ask: *"Explain quadratic equations with examples"*
 2. ✅ Create a flashcard with front: *"What is React?"* and practice it
@@ -508,20 +489,18 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 🤝 Contact & Support
 
-**Team Contact**: your-email@example.com
+**Team Contact**: acexuzair@gmail.com
 
-**Project Repository**: [GitHub Link](https://github.com/your-username/mentora)
-
-**Report Issues**: [Issue Tracker](https://github.com/your-username/mentora/issues)
+**Project Repository**: [GitHub Link](https://github.com/Butcherboy7/mlsc-prototype-1)
 
 ---
 
 <div align="center">
 
-### Built with ❤️ for MLSC Hackathon 2024
+### Built with ❤️ for MLSC Hackathon 2025
 
 **Mentora** - *Your AI-Powered Learning Companion*
 
- [📹 Video](https://drive.google.com/file/d/1Gb0lJcbg6fgTQ9acJKAXbrDlgwniQF7G/view?usp=drivesdk) | [📖 Docs](./README.md) | [🐛 Issues](https://github.com/your-username/mentora/issues)
+ [📹 Video](https://drive.google.com/file/d/1Gb0lJcbg6fgTQ9acJKAXbrDlgwniQF7G/view?usp=drivesdk) | [📖 Docs](./README.md) |
 
 </div>
