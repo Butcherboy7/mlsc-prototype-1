@@ -162,7 +162,7 @@ const Index = () => {
 
         {/* Content Area */}
         <main className="flex-1 p-4 pb-20 md:pb-4 overflow-auto">
-          <div className="max-w-4xl mx-auto border border-border/30 rounded-lg p-6 bg-card/30 backdrop-blur-sm">
+          <div className="w-full h-full border border-border/30 rounded-lg p-4 md:p-6 bg-card/30 backdrop-blur-sm">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab + (selectedMode || '')}
@@ -173,6 +173,7 @@ const Index = () => {
                   duration: 0.3,
                   ease: "easeInOut"
                 }}
+                className="h-full"
               >
                 {renderActiveComponent()}
               </motion.div>
