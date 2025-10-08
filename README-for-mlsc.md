@@ -443,7 +443,7 @@ pm2 start dist/index.js --name mentora
 > MBTI-based personality assessment with career recommendations
 
 ### 10. Mobile Responsive Design
-![Mobile View](./screenshots/mobile-view.png)
+![Mobile View]("C:\Users\ADMIN\Pictures\Screenshots\IMG_4633.PNG")
 > Fully responsive design optimized for mobile devices
 
 > 📝 **Note:** Please add actual screenshots to a `screenshots/` folder in your project and update the paths above.
