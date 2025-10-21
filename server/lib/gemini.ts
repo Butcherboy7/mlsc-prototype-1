@@ -1,7 +1,18 @@
 import { GoogleGenAI } from "@google/genai";
 import * as fs from "fs";
+import { config } from "dotenv";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+// Load environment variables
+config();
+
+// Verify API key exists
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.error('ERROR: GEMINI_API_KEY not found in environment variables!');
+  console.error('Please check your .env file contains: GEMINI_API_KEY=your_key_here');
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || "" });
 
 interface Message {
   role: 'system' | 'user' | 'assistant';

@@ -6,6 +6,15 @@ import { setupVite, serveStatic, log } from "./vite";
 // Load environment variables from .env file
 config();
 
+// Verify Gemini API key is loaded
+const apiKey = process.env.GEMINI_API_KEY;
+if (apiKey) {
+  console.log(`✓ Gemini API Key loaded: ${apiKey.substring(0, 20)}...`);
+} else {
+  console.error('✗ GEMINI_API_KEY not found in environment!');
+  console.error('✗ AI features will not work. Please add GEMINI_API_KEY to your .env file');
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
